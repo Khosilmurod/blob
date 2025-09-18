@@ -182,25 +182,29 @@ function draw() {
         console.log(`This should only happen during team dissolution, not absorption!`);
     }
     
-    // Ensure we maintain 100 blobs - add missing ones if population dropped
-    const targetPopulation = 100;
+    // Ensure we maintain population within limits - respect maximum
+    const maxBlobs = config.maxBlobCount || 500;
+    const targetPopulation = Math.min(config.initialBlobCount || 100, maxBlobs);
+    
     if (blobs.length < targetPopulation && frameCount % 60 === 0) { // Check every second
-        const missing = targetPopulation - blobs.length;
-        console.log(`🔧 Population dropped to ${blobs.length}. Adding ${missing} blobs to reach ${targetPopulation}.`);
-        
-        for (let i = 0; i < missing; i++) {
-            const margin = 50;
-            const x = random(margin, windowWidth - margin);
-            const y = random(margin, windowHeight - margin);
+        const missing = Math.min(targetPopulation - blobs.length, maxBlobs - blobs.length);
+        if (missing > 0) {
+            console.log(`🔧 Population dropped to ${blobs.length}. Adding ${missing} blobs (max: ${maxBlobs}).`);
             
-            const newBlob = new Blob(x, y, null);
-            newBlob.showDebug = showDebug;
-            newBlob.showDirections = showDirections;
-            newBlob.showTeamCircles = showTeamCircles;
-            blobs.push(newBlob);
-            
-            if (!teams.includes(newBlob.team)) {
-                teams.push(newBlob.team);
+            for (let i = 0; i < missing; i++) {
+                const margin = 50;
+                const x = random(margin, windowWidth - margin);
+                const y = random(margin, windowHeight - margin);
+                
+                const newBlob = new Blob(x, y, null);
+                newBlob.showDebug = showDebug;
+                newBlob.showDirections = showDirections;
+                newBlob.showTeamCircles = showTeamCircles;
+                blobs.push(newBlob);
+                
+                if (!teams.includes(newBlob.team)) {
+                    teams.push(newBlob.team);
+                }
             }
         }
     }
@@ -365,7 +369,8 @@ function drawStats() {
     
     textSize(9); // Reduced font size
     textStyle(NORMAL);
-    text(`[SYSTEM] ${blobs.length} ENTITIES | ${teams.filter(t => t.members.length > 0).length} GROUPS`, panelX + 10, 50);
+    const maxBlobs = config.maxBlobCount || 500;
+    text(`[SYSTEM] ${blobs.length}/${maxBlobs} ENTITIES | ${teams.filter(t => t.members.length > 0).length} GROUPS`, panelX + 10, 50);
     text(`[STATUS] ${teams.filter(t => t.isInCombat).length} HOSTILE | RES:${windowWidth}x${windowHeight}`, panelX + 10, 62);
     text('━'.repeat(Math.floor(panelWidth/8)), panelX + 10, 75);
     
@@ -773,23 +778,31 @@ function checkTeamDynamics() {
                 team.life = -1; // Mark as processed
             });
             
-            // Create exactly the same number of new random blobs to replace ALL the dead ones
-            console.log(`✨ Creating ${totalDeadBlobs} new blobs to replace the dead teams...`);
-            for (let i = 0; i < totalDeadBlobs; i++) {
-                const margin = 50;
-                const x = random(margin, windowWidth - margin);
-                const y = random(margin, windowHeight - margin);
-                
-                const newBlob = new Blob(x, y, null); // Creates its own individual team
-                newBlob.showDebug = showDebug;
-                newBlob.showDirections = showDirections;
-                newBlob.showTeamCircles = showTeamCircles;
-                blobs.push(newBlob);
-                
-                // Add the blob's team to global teams array
-                if (!teams.includes(newBlob.team)) {
-                    teams.push(newBlob.team);
+            // Create new blobs to replace dead ones, but respect maximum limit
+            const maxBlobs = config.maxBlobCount || 500;
+            const currentBlobCount = blobs.length;
+            const blobsToCreate = Math.min(totalDeadBlobs, maxBlobs - currentBlobCount);
+            
+            if (blobsToCreate > 0) {
+                console.log(`✨ Creating ${blobsToCreate} new blobs to replace dead teams (max: ${maxBlobs})...`);
+                for (let i = 0; i < blobsToCreate; i++) {
+                    const margin = 50;
+                    const x = random(margin, windowWidth - margin);
+                    const y = random(margin, windowHeight - margin);
+                    
+                    const newBlob = new Blob(x, y, null); // Creates its own individual team
+                    newBlob.showDebug = showDebug;
+                    newBlob.showDirections = showDirections;
+                    newBlob.showTeamCircles = showTeamCircles;
+                    blobs.push(newBlob);
+                    
+                    // Add the blob's team to global teams array
+                    if (!teams.includes(newBlob.team)) {
+                        teams.push(newBlob.team);
+                    }
                 }
+            } else {
+                console.log(`❌ Cannot create replacement blobs: Maximum limit of ${maxBlobs} reached`);
             }
             
             const finalBlobCount = blobs.length;
@@ -812,6 +825,13 @@ function checkTeamDynamics() {
  * Add a new blob at mouse position
  */
 function addBlobAtMouse(x, y) {
+    // Check maximum blob count limit
+    const maxBlobs = config.maxBlobCount || 500;
+    if (blobs.length >= maxBlobs) {
+        console.log(`❌ Cannot add new blob: Maximum limit of ${maxBlobs} reached`);
+        return;
+    }
+    
     const newBlob = new Blob(x, y, null); // Creates its own individual team
     newBlob.showDebug = showDebug;
     blobs.push(newBlob);
@@ -821,7 +841,7 @@ function addBlobAtMouse(x, y) {
         teams.push(newBlob.team);
     }
     
-    console.log(`Added new blob at (${x}, ${y}) - Team: ${newBlob.team.name}`);
+    console.log(`Added new blob at (${x}, ${y}) - Team: ${newBlob.team.name} (${blobs.length}/${maxBlobs})`);
 }
 
 /**
