@@ -422,9 +422,9 @@ class Blob {
         // Calculate damage based on strength difference - MEANINGFUL COMBAT
         const strengthDifference = Math.abs(winnerStrength - loserStrength);
         const baseDamage = config.baseDamage || 8; // Use config value
-        const strengthDamage = Math.floor(strengthDifference / 8); // 1 damage per 8 strength difference (was 20)
+        const strengthDamage = Math.floor(strengthDifference / 5); // 1 damage per 5 strength difference (was 8) - MORE INTENSE
         
-        const damageToLoser = baseDamage + strengthDamage + Math.floor(Math.random() * 6); // 8-14+ damage
+        const damageToLoser = baseDamage + strengthDamage + Math.floor(Math.random() * 10); // More random damage (was 6) - MORE INTENSE
         
         // TEAM SIZE PROTECTION - MINIMAL + LARGE TEAM PENALTY
         const loserTeamSize = loser.team.members.length;

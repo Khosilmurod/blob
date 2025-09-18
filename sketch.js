@@ -2,11 +2,25 @@
 let blobs = [];
 let teams = [];
 let canvas;
-let showStats = true; // Stats panel is now always visible
+let showStats = false; // Terminal disabled by default - press space to show
 let showDebug = false;
-let showDirections = true; // Toggle for direction arrows - enabled by default
+let showDirections = false; // Toggle for direction arrows - disabled by default
 let showTeamCircles = true; // Toggle for team formation circles - enabled by default
 let showInstructions = false; // Toggle for instructions panel
+
+// Audio
+let backgroundMusic;
+
+/**
+ * Preload assets before setup
+ */
+function preload() {
+    // Load background music
+    backgroundMusic = loadSound('assets/Traditional Uzbek Music - Glorious Morning.mp3', 
+        () => console.log('Background music loaded successfully'),
+        () => console.log('Failed to load background music - file may not exist')
+    );
+}
 
 // Configuration object - loaded from config.json
 let config = {};
@@ -14,6 +28,7 @@ let config = {};
 // UI State
 let scrollOffset = 0;
 let maxScroll = 0;
+let startTime = 0; // Track when simulation started
 
 // Generative Art Color System
 class ColorPalette {
@@ -107,6 +122,16 @@ function setup() {
     canvas = createCanvas(windowWidth, windowHeight);
     canvas.parent('sketch-container');
     
+    // Initialize start time for instructions
+    startTime = millis();
+    
+    // Setup background music
+    if (backgroundMusic && backgroundMusic.isLoaded()) {
+        backgroundMusic.setVolume(0.3); // Set volume to 30%
+        backgroundMusic.loop(); // Loop continuously
+        console.log('Background music started');
+    }
+    
     // Initialize generative art color palette
     colorPalette = new ColorPalette();
     window.colorPalette = colorPalette; // Make globally accessible
@@ -183,12 +208,15 @@ function draw() {
     // Draw UI - toggle with space key
     if (showStats) {
         drawStats();
+        
+        // Draw instructions panel if enabled - aligned with terminal
+        if (showInstructions) {
+            drawInstructions();
+        }
     }
     
-    // Draw instructions panel if enabled
-    if (showInstructions) {
-        drawInstructions();
-    }
+    // Show initial instruction for first 10 seconds
+    drawInitialInstruction();
 }
 
 /**
@@ -227,10 +255,62 @@ function createBlobs() {
 }
 
 /**
+ * Draw initial instruction message - always visible
+ */
+function drawInitialInstruction() {
+    if (!showStats) {
+        // Position at bottom center
+        const messageX = windowWidth / 2;
+        const messageY = windowHeight - 50;
+        const boxWidth = 280;
+        const boxHeight = 35;
+        const sideBoxWidth = 80; // Increased for internal padding
+        const spacing = 25;
+        const alpha = 255; // Always fully visible
+        
+        // Main instruction box
+        fill(0, 0, 0, alpha * 0.7);
+        stroke(160, 160, 160, alpha);
+        strokeWeight(1);
+        rectMode(CENTER);
+        rect(messageX, messageY, boxWidth, boxHeight, 5);
+        
+        // Left side box for V key - larger for internal padding
+        rect(messageX - boxWidth/2 - spacing - sideBoxWidth/2, messageY, sideBoxWidth, boxHeight, 5);
+        
+        // Right side box for C key - larger for internal padding
+        rect(messageX + boxWidth/2 + spacing + sideBoxWidth/2, messageY, sideBoxWidth, boxHeight, 5);
+        
+        // Main instruction text - properly centered with padding
+        fill(200, 200, 200, alpha);
+        textAlign(CENTER, CENTER);
+        textSize(12);
+        textFont('Courier New');
+        textStyle(NORMAL);
+        text('Press [SPACE] to show terminal', messageX, messageY);
+        
+        // Side instruction texts - one line only, centered in larger boxes
+        textSize(10);
+        text('Press [V]', messageX - boxWidth/2 - spacing - sideBoxWidth/2, messageY);
+        text('Press [C]', messageX + boxWidth/2 + spacing + sideBoxWidth/2, messageY);
+        
+        // Subtle pulse effect for main box
+        const pulseAlpha = sin(millis() * 0.005) * 30 + 30;
+        stroke(160, 160, 160, pulseAlpha);
+        strokeWeight(2);
+        noFill();
+        rect(messageX, messageY, boxWidth + 4, boxHeight + 4, 5);
+        
+        // Reset rect mode
+        rectMode(CORNER);
+    }
+}
+
+/**
  * Draw statistics panel with controls
  */
 function drawStats() {
-    const panelWidth = Math.min(400, windowWidth * 0.25);
+    const panelWidth = 300; // Match help panel width
     
     // Calculate dynamic height based on content
     const sortedTeams = teams.filter(team => team.members.length > 0)
@@ -239,11 +319,11 @@ function drawStats() {
                                 const bStrength = b.members.reduce((sum, blob) => sum + blob.strength, 0);
                                 return bStrength - aStrength;
                             });
-    const itemHeight = 50; // Reduced from 65
-    const headerHeight = 90; // Reduced from 110
-    const buttonAreaHeight = 45; // Reduced from 60
-    const contentHeight = Math.min(sortedTeams.length * itemHeight, windowHeight - headerHeight - buttonAreaHeight - 40);
-    const panelHeight = headerHeight + contentHeight + buttonAreaHeight;
+    const itemHeight = 50;
+    const headerHeight = 90;
+    const maxContentHeight = Math.min(200, windowHeight - headerHeight - 80);
+    const actualContentHeight = Math.min(sortedTeams.length * itemHeight, maxContentHeight);
+    const panelHeight = headerHeight + actualContentHeight; // No extra space
     
     // Position terminal on the right side
     const panelX = windowWidth - panelWidth;
@@ -251,14 +331,14 @@ function drawStats() {
     // Terminal-style black panel
     push();
     
-    // Solid black background
+    // Solid black background - exact size needed
     fill(0, 0, 0, 240);
-    stroke(160, 160, 160, 180); // Muted gray border instead of green
+    stroke(160, 160, 160, 180);
     strokeWeight(2);
-    rect(panelX, 20, panelWidth, panelHeight, 0); // No rounded corners for terminal look
+    rect(panelX, 20, panelWidth, panelHeight, 0);
     
-    // Terminal scanlines effect
-    stroke(120, 120, 120, 20); // Subtle gray scanlines
+    // Terminal scanlines effect - only within panel
+    stroke(120, 120, 120, 20);
     strokeWeight(1);
     for (let i = 20; i < panelHeight + 20; i += 4) {
         line(panelX, i, panelX + panelWidth, i);
@@ -267,13 +347,13 @@ function drawStats() {
     // Terminal header section
     fill(0, 0, 0);
     noStroke();
-    rect(panelX, 20, panelWidth, 65); // Reduced from 80
+    rect(panelX, 20, panelWidth, 65);
     
     // Header border
-    stroke(160, 160, 160); // Gray border
+    stroke(160, 160, 160);
     strokeWeight(1);
     line(panelX, 20, panelX + panelWidth, 20);
-    line(panelX, 85, panelX + panelWidth, 85); // Adjusted position
+    line(panelX, 85, panelX + panelWidth, 85);
     
     // Terminal header text with ASCII art
     fill(200, 200, 200); // Light gray text instead of bright green
@@ -290,12 +370,12 @@ function drawStats() {
     text('━'.repeat(Math.floor(panelWidth/8)), panelX + 10, 75);
     
     // Scrollable content area
-    const contentY = 90; // Reduced from 110
+    const contentY = 90;
     
     // Create clipping mask for scrollable area
     drawingContext.save();
     drawingContext.beginPath();
-    drawingContext.rect(panelX, contentY, panelWidth, contentHeight);
+    drawingContext.rect(panelX, contentY, panelWidth, actualContentHeight);
     drawingContext.clip();
     
     // Sort teams by strength for better display (reuse the already calculated sortedTeams)
@@ -304,34 +384,35 @@ function drawStats() {
     
     sortedTeams.forEach((team, index) => {
         // Only render if visible
-        if (yPos + itemHeight > contentY && yPos < contentY + contentHeight) {
+        if (yPos + itemHeight > contentY && yPos < contentY + actualContentHeight) {
             drawTerminalTeamCard(team, panelX + 5, yPos, panelWidth - 10, itemHeight - 5);
         }
         yPos += itemHeight;
     });
     
-    // Calculate max scroll
-    maxScroll = Math.max(0, sortedTeams.length * itemHeight - contentHeight + 20);
+    // Calculate max scroll - ensure proper scrolling with limited height
+    maxScroll = Math.max(0, (sortedTeams.length * itemHeight) - actualContentHeight);
     
     drawingContext.restore();
     
-    // Terminal-style scroll indicator
+    // Terminal-style scroll indicator - always show if content overflows
     if (maxScroll > 0) {
-        const scrollBarHeight = (contentHeight / (sortedTeams.length * itemHeight)) * contentHeight;
-        const scrollBarY = contentY + (scrollOffset / maxScroll) * (contentHeight - scrollBarHeight);
+        const totalContentHeight = sortedTeams.length * itemHeight;
+        const scrollBarHeight = Math.max(20, (actualContentHeight / totalContentHeight) * actualContentHeight);
+        const scrollBarY = contentY + (scrollOffset / maxScroll) * (actualContentHeight - scrollBarHeight);
         
         // ASCII scroll bar
-        stroke(120, 120, 120, 100); // Muted gray
+        stroke(120, 120, 120, 100);
         strokeWeight(1);
-        line(panelX + panelWidth - 6, contentY, panelX + panelWidth - 6, contentY + contentHeight);
+        line(panelX + panelWidth - 6, contentY, panelX + panelWidth - 6, contentY + actualContentHeight);
         
-        stroke(180, 180, 180); // Lighter gray for indicator
+        stroke(180, 180, 180);
         strokeWeight(3);
         line(panelX + panelWidth - 6, scrollBarY, panelX + panelWidth - 6, scrollBarY + scrollBarHeight);
     }
     
     // Draw interactive buttons
-    drawButtons(panelX, panelWidth);
+    drawButtons(panelX, panelWidth, panelHeight);
     
     pop();
 }
@@ -432,9 +513,9 @@ function drawTerminalBar(label, value, maxValue, x, y, width) {
 function drawInstructions() {
     const panelWidth = 300;
     const panelHeight = 250;
-    const terminalWidth = Math.min(400, windowWidth * 0.25);
+    const terminalWidth = 300; // Match terminal width
     const x = windowWidth - terminalWidth - panelWidth - 10; // Position to the left of terminal
-    const y = 10;
+    const y = 20; // Same offset as terminal panel
     
     // Terminal-style instructions background
     fill(0, 0, 0, 220);
@@ -466,6 +547,7 @@ function drawInstructions() {
         '[C] - Toggle team circles',
         '[R] - Reset simulation',
         '[F] - Toggle fullscreen',
+        '[M] - Toggle background music',
         '',
         'MOUSE:',
         'Scroll - Navigate team list',
@@ -487,12 +569,12 @@ function drawInstructions() {
 /**
  * Draw interactive buttons in stats panel
  */
-function drawButtons(panelX, panelWidth) {
+function drawButtons(panelX, panelWidth, panelHeight) {
     const buttonSpacing = 4;
     const buttonWidth = (panelWidth - 10 - (buttonSpacing * 3)) / 4; // Divide width equally among 4 buttons
     const buttonHeight = 30; // Slightly bigger
     const startX = panelX + 5;
-    const startY = height - 40;
+    const startY = 20 + panelHeight + 2; // Position directly under the terminal panel with minimal gap
     
     const buttons = [
         { label: 'RESET', action: 'reset', key: 'R' },
@@ -606,6 +688,19 @@ function keyPressed() {
         case 'h':
         case 'H':
             showInstructions = !showInstructions;
+            break;
+        case 'm':
+        case 'M':
+            // Toggle background music
+            if (backgroundMusic && backgroundMusic.isLoaded()) {
+                if (backgroundMusic.isPlaying()) {
+                    backgroundMusic.pause();
+                    console.log('Background music paused');
+                } else {
+                    backgroundMusic.play();
+                    console.log('Background music resumed');
+                }
+            }
             break;
     }
 }
@@ -824,7 +919,10 @@ function logBlobInfo() {
 
 // Mouse wheel scrolling for stats panel
 function mouseWheel(event) {
-    if (showStats && mouseX < Math.min(400, windowWidth * 0.25)) {
+    const panelWidth = 300;
+    const panelX = windowWidth - panelWidth;
+    
+    if (showStats && mouseX > panelX && mouseX < windowWidth) {
         // Scroll in stats panel
         scrollOffset += event.delta * 3;
         scrollOffset = Math.max(0, Math.min(scrollOffset, maxScroll));

@@ -4,13 +4,13 @@
   "teamStartAggressionMax": 50,
   "teamMaxSizeMin": 6,
   "teamMaxSizeMax": 14,
-  "baseDamage": 8,
+  "baseDamage": 25,
   "winnerLifeGain": 0.4,
-  "teamSizeProtection": 0.05,
-  "largePenaltyRate": 0.15,
+  "teamSizeProtection": 0.03,
+  "largePenaltyRate": 0.25,
   "lifeRegenRate": 0.8,
   "teamGrowthBonus": 5,
-  "aggressionWinnerIncrease": 2,
+  "aggressionWinnerIncrease": 4,
   "aggressionLoserIncrease": 4,
   "aggressionDecayRate": 0.5
 }
