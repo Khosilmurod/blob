@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #222; 
+            color: white; 
+            font-family: monospace; 
+        }
+        #test-output {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border: 1px solid #444;
+            max-width: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div id="test-output">
+        <h2>🔍 Debug Test</h2>
+        <div id="status">Starting tests...</div>
+    </div>
+    
+    <script>
+        const status = document.getElementById('status');
+        
+        function log(msg) {
+            console.log(msg);
+            status.innerHTML += '<br>• ' + msg;
+        }
+        
+        log('✅ HTML loaded');
+        log('✅ JavaScript executing');
+        
+        // Test 1: Basic functionality
+        try {
+            log('✅ Try/catch works');
+        } catch (e) {
+            log('❌ Basic JavaScript error: ' + e);
+        }
+        
+        // Test 2: Check if we can create elements
+        try {
+            const testDiv = document.createElement('div');
+            log('✅ DOM manipulation works');
+        } catch (e) {
+            log('❌ DOM error: ' + e);
+        }
+        
+        // Test 3: Load p5.js from CDN
+        log('🔄 Loading p5.js...');
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js';
+        script.onload = function() {
+            log('✅ p5.js CDN loaded successfully');
+            
+            // Test if p5 global exists
+            if (typeof p5 !== 'undefined') {
+                log('✅ p5 global variable exists');
+                
+                // Try creating a simple sketch
+                setTimeout(() => {
+                    try {
+                        log('🔄 Creating p5 sketch...');
+                        
+                        function setup() {
+                            log('✅ p5 setup() called');
+                            createCanvas(400, 300);
+                            background(100, 150, 200);
+                            log('✅ Canvas created and background set');
+                        }
+                        
+                        function draw() {
+                            // Simple red circle that follows mouse
+                            fill(255, 0, 0);
+                            ellipse(mouseX, mouseY, 20, 20);
+                        }
+                        
+                        log('✅ p5 sketch functions defined');
+                        
+                    } catch (e) {
+                        log('❌ p5 sketch error: ' + e.message);
+                    }
+                }, 100);
+                
+            } else {
+                log('❌ p5 global variable not found');
+            }
+        };
+        
+        script.onerror = function() {
+            log('❌ Failed to load p5.js CDN');
+        };
+        
+        document.head.appendChild(script);
+        
+        // Test 4: Check network connectivity
+        fetch('https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js', {method: 'HEAD'})
+            .then(() => log('✅ CDN reachable'))
+            .catch(e => log('❌ CDN unreachable: ' + e));
+            
+    </script>
+</body>
+</html>
