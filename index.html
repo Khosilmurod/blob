@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blob Simulation</title>
+    <script src="node_modules/p5/lib/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            overflow: hidden;
+        }
+
+        main {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #sketch-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div id="sketch-container"></div>
+    </main>
+    
+    <script src="src/Team.js"></script>
+    <script src="src/Blob.js"></script>
+    <script src="sketch.js"></script>
+</body>
+</html>
