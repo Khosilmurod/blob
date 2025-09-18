@@ -17,6 +17,37 @@ let backgroundMusic;
 function preload() {
     console.log('🔄 Preload started...');
     
+    // Load configuration from config.json FIRST
+    loadJSON('config.json', 
+        (data) => {
+            config = data;
+            window.config = config; // Make globally accessible
+            console.log('✅ Configuration loaded:', config);
+        },
+        (error) => {
+            console.error('❌ Failed to load config.json, using defaults:', error);
+            // Set default values if config fails to load
+            config = {
+                initialBlobCount: 80,
+                maxBlobCount: 500,
+                teamStartAggressionMin: 10,
+                teamStartAggressionMax: 50,
+                teamMaxSizeMin: 6,
+                teamMaxSizeMax: 14,
+                baseDamage: 40,
+                winnerLifeGain: 0.4,
+                teamSizeProtection: 0.03,
+                largePenaltyRate: 0.25,
+                lifeRegenRate: 0.8,
+                teamGrowthBonus: 5,
+                aggressionWinnerIncrease: 4,
+                aggressionLoserIncrease: 4,
+                aggressionDecayRate: 0.5
+            };
+            window.config = config; // Make globally accessible
+        }
+    );
+    
     // Try to load background music, but don't let it block the app
     try {
         if (typeof loadSound !== 'undefined') {
@@ -103,32 +134,6 @@ let colorPalette;
 /**
  * p5.js setup function - runs once at start
  */
-function preload() {
-    // Load configuration from config.json
-    loadJSON('config.json', 
-        (data) => {
-            config = data;
-            window.config = config; // Make globally accessible
-            console.log('✅ Configuration loaded:', config);
-        },
-        (error) => {
-            console.error('❌ Failed to load config.json, using defaults:', error);
-            // Set default values if config fails to load
-            config = {
-                initialBlobCount: 100,
-                teamStartAggression: { min: 10, max: 50 },
-                teamMaxSize: { min: 6, max: 14 },
-                combat: { baseDamage: 8, strengthDivisor: 8, randomDamageRange: 6 },
-                winnerLifeGain: 0.4,
-                teamSizeProtection: 0.05,
-                largePenaltyThreshold: 6,
-                largePenaltyRate: 0.15
-            };
-            window.config = config; // Make globally accessible
-        }
-    );
-}
-
 function setup() {
     console.log('🚀 Setup started...');
     
