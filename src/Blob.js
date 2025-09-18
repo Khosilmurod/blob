@@ -45,6 +45,9 @@ class Blob {
         // Visual properties
         this.alpha = 255;
         this.strokeWeight = 2;
+        this.showDebug = false;
+        this.showDirections = false;
+        this.showTeamCircles = false;
         
         // Timing for target changes
         this.lastTargetChange = millis();
@@ -418,10 +421,16 @@ class Blob {
         const shouldAbsorb = loser.team.morale < 10 && Math.random() < 0.05; // Much lower chance (5% instead of 30%)
         
         if (canAbsorb && shouldAbsorb) {
-            // Absorb the losing blob
+            // Absorb the losing blob - actually remove it from the global blobs array
             console.log(`ABSORPTION: ${loser.team.name} blob absorbed by ${winner.team.name}`);
             loser.team.removeMember(loser);
-            winner.team.addMember(loser);
+            
+            // CRITICAL: Remove the absorbed blob from the global blobs array
+            const globalIndex = blobs.indexOf(loser);
+            if (globalIndex > -1) {
+                blobs.splice(globalIndex, 1);
+                console.log(`Removed absorbed blob from global array. Population now: ${blobs.length}`);
+            }
             
             // Clean up empty teams
             if (loser.team.members.length === 0) {
@@ -756,8 +765,8 @@ class Blob {
     render() {
         push();
         
-        // Draw team connections first (behind blobs)
-        if (this.showDebug && this.team && this.team.members.length > 1) {
+        // Draw team connections first (behind blobs) - separate toggle
+        if (this.showTeamCircles && this.team && this.team.members.length > 1) {
             this.drawTeamConnections();
         }
         
@@ -827,8 +836,8 @@ class Blob {
             ellipse(this.position.x, this.position.y, this.size + 8);
         }
         
-        // Draw target line (for debugging - can be removed)
-        if (this.showDebug) {
+        // Draw target line and directions (separate toggle)
+        if (this.showDirections) {
             stroke(255, 100, 100, 100);
             strokeWeight(1);
             

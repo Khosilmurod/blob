@@ -4,6 +4,8 @@ let teams = [];
 let canvas;
 let showStats = true;
 let showDebug = false;
+let showDirections = false; // Toggle for direction arrows
+let showTeamCircles = false; // Toggle for team formation circles
 
 // Generative Art Color System
 class ColorPalette {
@@ -94,13 +96,26 @@ function draw() {
     const blobCount = blobs.length;
     
     // Update all blobs (includes interaction checks)
-    blobs.forEach(blob => blob.update(blobs));
+    try {
+        blobs.forEach(blob => blob.update(blobs));
+    } catch (error) {
+        console.error('Error in blob update:', error);
+        return; // Stop execution if there's an error
+    }
     
     // Check for team rebellions and cleanup
-    checkTeamDynamics();
+    try {
+        checkTeamDynamics();
+    } catch (error) {
+        console.error('Error in team dynamics:', error);
+    }
     
     // Render all blobs
-    blobs.forEach(blob => blob.render());
+    try {
+        blobs.forEach(blob => blob.render());
+    } catch (error) {
+        console.error('Error in blob rendering:', error);
+    }
     
     // Debug: Check if blob count changed unexpectedly
     if (blobs.length < blobCount) {
@@ -125,11 +140,8 @@ function initializeTeams() {
  * Create blobs and assign them to teams
  */
 function createBlobs() {
-    // Scale number of blobs based on screen size
-    const screenArea = windowWidth * windowHeight;
-    const baseArea = 1000 * 700; // Original canvas size
-    const scaleFactor = Math.sqrt(screenArea / baseArea);
-    const numBlobs = Math.floor(30 * scaleFactor); // Reduced for better interaction dynamics
+    // Fixed number of blobs - 64 total
+    const numBlobs = 64;
     
     for (let i = 0; i < numBlobs; i++) {
         // Random position with margin from edges
@@ -139,6 +151,9 @@ function createBlobs() {
         
         // Each blob starts with its own individual team
         const blob = new Blob(x, y, null); // null team means it creates its own
+        blob.showDirections = showDirections;
+        blob.showTeamCircles = showTeamCircles;
+        blob.showDebug = showDebug;
         blobs.push(blob);
         
         // Add the blob's team to global teams array
@@ -217,7 +232,7 @@ function drawStats() {
     });
     
     // Controls section
-    yOffset = Math.max(yOffset, panelHeight - 100);
+    yOffset = Math.max(yOffset, panelHeight - 120);
     fill(255);
     textStyle(BOLD);
     textSize(Math.min(14, windowWidth * 0.014));
@@ -229,6 +244,10 @@ function drawStats() {
     text('Space: Toggle This Panel', 20, yOffset);
     yOffset += 12;
     text('D: Toggle Debug Mode', 20, yOffset);
+    yOffset += 12;
+    text('V: Toggle Direction Arrows', 20, yOffset);
+    yOffset += 12;
+    text('C: Toggle Team Circles', 20, yOffset);
     yOffset += 12;
     text('R: Reset Simulation', 20, yOffset);
     yOffset += 12;
@@ -252,6 +271,18 @@ function keyPressed() {
             showDebug = !showDebug;
             blobs.forEach(blob => blob.showDebug = showDebug);
             break;
+        case 'v':
+        case 'V':
+            showDirections = !showDirections;
+            blobs.forEach(blob => blob.showDirections = showDirections);
+            console.log(`Direction arrows: ${showDirections ? 'ON' : 'OFF'}`);
+            break;
+        case 'c':
+        case 'C':
+            showTeamCircles = !showTeamCircles;
+            blobs.forEach(blob => blob.showTeamCircles = showTeamCircles);
+            console.log(`Team circles: ${showTeamCircles ? 'ON' : 'OFF'}`);
+            break;
         case 'r':
         case 'R':
             resetSimulation();
@@ -270,7 +301,7 @@ function mousePressed() {
     // Check if click is within canvas bounds
     if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
         if (keyIsDown(SHIFT)) {
-            // Remove nearest blob
+            // Remove nearest blob (for debugging purposes)
             removeNearestBlob(mouseX, mouseY);
         } else {
             // Add new blob at mouse position
@@ -300,6 +331,66 @@ function checkTeamDynamics() {
             // Update team morale over time
             team.updateMorale();
         });
+    }
+    
+    // Check for teams with 0 morale - they die and get replaced
+    if (frameCount % 180 === 0) { // Every 3 seconds at 60fps
+        const initialBlobCount = blobs.length;
+        const deadTeams = teams.filter(team => team.morale <= 0 && team.members.length > 0);
+        
+        if (deadTeams.length > 0) {
+            let totalDeadBlobs = 0;
+            
+            console.log(`💀 Processing ${deadTeams.length} dead teams...`);
+            
+            deadTeams.forEach(team => {
+                const deadBlobCount = team.members.length;
+                totalDeadBlobs += deadBlobCount;
+                
+                console.log(`💀 Team ${team.name} died from zero morale! ${deadBlobCount} blobs perished.`);
+                
+                // Remove all dead blobs from the main blobs array
+                team.members.forEach(deadBlob => {
+                    const index = blobs.indexOf(deadBlob);
+                    if (index > -1) {
+                        blobs.splice(index, 1);
+                    }
+                });
+                
+                // Clear the team's member list immediately to prevent reprocessing
+                team.members = [];
+                team.morale = -1; // Mark as processed
+            });
+            
+            // Create exactly the same number of new random blobs to replace ALL the dead ones
+            console.log(`✨ Creating ${totalDeadBlobs} new blobs to replace the dead...`);
+            for (let i = 0; i < totalDeadBlobs; i++) {
+                const margin = 50;
+                const x = random(margin, windowWidth - margin);
+                const y = random(margin, windowHeight - margin);
+                
+                const newBlob = new Blob(x, y, null); // Creates its own individual team
+                newBlob.showDebug = showDebug;
+                newBlob.showDirections = showDirections;
+                newBlob.showTeamCircles = showTeamCircles;
+                blobs.push(newBlob);
+                
+                // Add the blob's team to global teams array
+                if (!teams.includes(newBlob.team)) {
+                    teams.push(newBlob.team);
+                }
+            }
+            
+            const finalBlobCount = blobs.length;
+            console.log(`📊 Population check: ${initialBlobCount} → ${finalBlobCount} (change: ${finalBlobCount - initialBlobCount})`);
+            
+            if (Math.abs(finalBlobCount - initialBlobCount) > 0) {
+                console.warn(`⚠️ Population changed by ${finalBlobCount - initialBlobCount}! This should be 0.`);
+            }
+        }
+        
+        // Remove dead teams from teams array (only those marked as processed)
+        teams = teams.filter(team => team.members.length > 0 && team.morale >= 0);
     }
     
     // Clean up empty teams

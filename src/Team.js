@@ -115,13 +115,22 @@ class Team {
             this.members.splice(index, 1);
             blob.team = null;
             
-            // Update morale after losing a member
-            this.morale = Math.max(0, this.morale - 10);
+            // Severe morale penalty when losing a member (death/absorption)
+            const moralePenalty = Math.min(25, 15 + (this.members.length > 0 ? 100 / this.members.length : 10));
+            this.morale = Math.max(0, this.morale - moralePenalty);
+            
+            console.log(`💔 ${this.name} lost a member! Morale dropped by ${moralePenalty.toFixed(0)} to ${this.morale.toFixed(0)}`);
             
             // If team becomes individual again
             if (this.members.length === 1) {
                 this.isIndividual = true;
                 this.name = `Blob-${this.members[0].id}`;
+            }
+            
+            // If team is completely wiped out, set morale to 0
+            if (this.members.length === 0) {
+                this.morale = 0;
+                console.log(`💀 ${this.name} has been completely wiped out!`);
             }
         }
     }
@@ -136,11 +145,38 @@ class Team {
         // Morale affected by leadership and team size
         let moraleChange = 0;
         if (avgLeadership > 70) moraleChange += 5;
-        if (avgLeadership < 30) moraleChange -= 5;
-        if (teamSize > 5) moraleChange -= 2; // Large teams have internal conflicts
+        if (avgLeadership < 30) moraleChange -= 8; // Increased penalty for poor leadership
+        if (teamSize > 5) moraleChange -= 4; // Increased penalty for large teams (internal conflicts)
         if (teamSize < 3) moraleChange += 3; // Small teams are more cohesive
         
+        // Combat fatigue reduces morale over time
+        if (this.isInCombat) {
+            moraleChange -= 3; // Combat stress
+        }
+        
+        // Random events that can affect morale
+        if (Math.random() < 0.1) { // 10% chance of random event
+            const randomEvent = Math.random();
+            if (randomEvent < 0.3) {
+                moraleChange -= 15; // Bad event (disease, resource shortage, etc.)
+                console.log(`💔 ${this.name} suffered a morale crisis!`);
+            } else if (randomEvent > 0.8) {
+                moraleChange += 10; // Good event (victory, discovery, etc.)
+                console.log(`✨ ${this.name} received a morale boost!`);
+            }
+        }
+        
+        // Teams that are too close to maximum capacity get stressed
+        if (this.members.length >= this.maxSize * 0.9) {
+            moraleChange -= 2; // Overcrowding stress
+        }
+        
         this.morale = Math.max(0, Math.min(100, this.morale + moraleChange));
+        
+        // Log when teams are in danger
+        if (this.morale <= 10 && this.members.length > 0) {
+            console.log(`⚠️ ${this.name} has critically low morale: ${this.morale.toFixed(0)}`);
+        }
     }
 
     /**
@@ -182,6 +218,12 @@ class Team {
      * @returns {Team} The resulting merged team
      */
     mergeWith(otherTeam) {
+        // Safety checks
+        if (!otherTeam || !this.members || !otherTeam.members) {
+            console.error('Invalid team merge attempt');
+            return this;
+        }
+        
         // Create new merged team - keep the larger team's color
         const dominantTeam = this.members.length >= otherTeam.members.length ? this : otherTeam;
         const mergedTeam = new Team(`${this.name}+${otherTeam.name}`, dominantTeam.color);
@@ -189,12 +231,34 @@ class Team {
         mergedTeam.aggression = (this.aggression + otherTeam.aggression) / 2;
         mergedTeam.maxSize = Math.min(12, this.maxSize + Math.floor(otherTeam.maxSize / 2));
         
-        // Move all members to new team
-        [...this.members, ...otherTeam.members].forEach(blob => {
-            if (mergedTeam.members.length < mergedTeam.maxSize) {
-                mergedTeam.addMember(blob);
+        // CRITICAL: Just reassign team membership, don't create new blobs
+        // Move all members to new team (this only changes team reference, not global blob count)
+        const allMembers = [...this.members, ...otherTeam.members];
+        
+        allMembers.forEach(blob => {
+            if (blob && mergedTeam.members.length < mergedTeam.maxSize) {
+                // Remove from old team first
+                if (blob.team === this) {
+                    const index = this.members.indexOf(blob);
+                    if (index > -1) this.members.splice(index, 1);
+                } else if (blob.team === otherTeam) {
+                    const index = otherTeam.members.indexOf(blob);
+                    if (index > -1) otherTeam.members.splice(index, 1);
+                }
+                
+                // Add to new team
+                mergedTeam.members.push(blob);
+                blob.team = mergedTeam;
             }
         });
+        
+        // Harmonize colors for the new team
+        if (mergedTeam.harmonizeTeamColors) {
+            mergedTeam.harmonizeTeamColors();
+        }
+        if (mergedTeam.selectLeader) {
+            mergedTeam.selectLeader();
+        }
         
         return mergedTeam;
     }
@@ -204,29 +268,54 @@ class Team {
      * @returns {Team|null} New splinter team if rebellion occurs
      */
     checkForRebellion() {
-        // Rebellion more likely with low morale, large size, or low leadership
-        const rebellionChance = (100 - this.morale) / 100 * 0.3 + 
-                               (this.members.length / this.maxSize) * 0.4 +
-                               (100 - this.getAverageLeadership()) / 100 * 0.3;
+        // Safety checks
+        if (!this.members || this.members.length <= 3) {
+            return null;
+        }
         
-        if (this.members.length > 3 && Math.random() < rebellionChance * 0.003) { // Reduced from 0.01 to 0.003
-            // Split team - some members leave to form new team
-            const splitSize = Math.floor(this.members.length / 2);
-            const rebelMembers = this.members.splice(-splitSize);
+        try {
+            // Rebellion more likely with low morale, large size, or low leadership
+            const rebellionChance = (100 - this.morale) / 100 * 0.3 + 
+                                   (this.members.length / this.maxSize) * 0.4 +
+                                   (100 - this.getAverageLeadership()) / 100 * 0.3;
             
-            if (rebelMembers.length > 0) {
-                // Rebels get a darker version of the original team color
-                const rebelTeam = new Team(`Rebel-${Team.nextId}`, color(
-                    red(this.color) * 0.6,
-                    green(this.color) * 0.6,
-                    blue(this.color) * 0.6
-                ));
+            if (Math.random() < rebellionChance * 0.003) { // Reduced from 0.01 to 0.003
+                // Split team - some members leave to form new team
+                const splitSize = Math.floor(this.members.length / 2);
+                const rebelMembers = this.members.splice(-splitSize);
                 
-                rebelMembers.forEach(blob => rebelTeam.addMember(blob));
-                this.morale = Math.min(100, this.morale + 20); // Remaining team recovers
-                
-                return rebelTeam;
+                if (rebelMembers.length > 0) {
+                    // Rebels get a darker version of the original team color
+                    const rebelTeam = new Team(`Rebel-${Team.nextId}`, color(
+                        red(this.color) * 0.6,
+                        green(this.color) * 0.6,
+                        blue(this.color) * 0.6
+                    ));
+                    
+                    // CRITICAL: Just reassign team membership, don't use addMember
+                    // This prevents any potential blob duplication
+                    rebelMembers.forEach(blob => {
+                        if (blob) {
+                            rebelTeam.members.push(blob);
+                            blob.team = rebelTeam;
+                        }
+                    });
+                    
+                    // Update team properties
+                    if (rebelTeam.harmonizeTeamColors) {
+                        rebelTeam.harmonizeTeamColors();
+                    }
+                    if (rebelTeam.selectLeader) {
+                        rebelTeam.selectLeader();
+                    }
+                    
+                    this.morale = Math.min(100, this.morale + 20); // Remaining team recovers
+                    
+                    return rebelTeam;
+                }
             }
+        } catch (error) {
+            console.error('Error in rebellion check:', error);
         }
         
         return null;
