@@ -1,137 +1,134 @@
-# P5.js Blob Simulation
+# Blob Simulation - Generative Art Installation
 
-An object-oriented blob simulation built with p5.js and npm. Features autonomous blobs with leadership and strength properties that form teams and exhibit complex movement behaviors.
+## Project Overview
 
-## Features
+[Brief description of your generative art piece and artistic vision]
 
-### Blob Properties
-- **Leadership (1-100)**: Affects steering force and team cohesion behavior
-- **Strength (1-100)**: Determines maximum speed and blob size
-- **Movement System**: Autonomous navigation with random target selection
-- **Team Association**: Blobs can belong to colored teams or remain independent
+## Technical Implementation
 
-### Movement Behaviors
-- **Seek**: Move towards randomly selected target points
-- **Wander**: Natural wandering behavior for organic movement
-- **Separation**: Avoid crowding with other blobs
-- **Cohesion**: Stay close to team members (leadership-based)
-- **Edge Wrapping**: Seamless movement across screen boundaries
+### Generative Elements
+- [Describe what makes this art generative]
+- [Explain the algorithmic/procedural aspects]
+- [Detail the emergent behaviors]
 
-### Team System
-- **5 Default Teams**: Alpha, Beta, Gamma, Delta, Epsilon
-- **Team Colors**: Distinct colors for visual identification
-- **Team Statistics**: Average leadership, strength, leaders, etc.
-- **Dynamic Membership**: Add/remove blobs from teams
+### Responsive Design Features
+- **Conditional 1**: [Describe first conditional based on screen size/resolution]
+- **Conditional 2**: [Describe second conditional based on display parameters]
+- **Aspect Ratio Handling**: [Explain how the work adapts to different aspect ratios]
 
-## Getting Started
+### Display Specifications
+- Works correctly at any aspect ratio
+- Responsive to screen resolution and canvas size
+- No input required (digital output only)
 
-### Prerequisites
-- Node.js and npm installed
-- Modern web browser
+## Installation & Usage
 
-### Installation
+### Requirements
+- Modern web browser with JavaScript enabled
+- No external dependencies (uses local p5.js file)
+
+### Local Installation
 ```bash
+# Clone the repository
+git clone [repository-url]
+
 # Navigate to project directory
 cd p5.js
 
-# Install dependencies
-npm install
-
-# Start the development server
+# Start local server
 npm start
+# OR
+npx serve . -p 8080
 ```
 
-### Running the Simulation
-1. Open your browser to `http://localhost:8080`
-2. Watch the blobs move around autonomously
-3. Use the interactive controls to modify the simulation
-
-## Controls
-
-| Key/Action | Function |
-|------------|----------|
-| **Space** | Toggle statistics panel |
-| **D** | Toggle debug mode (shows targets and paths) |
-| **R** | Reset simulation with new random blobs |
-| **F** | Toggle fullscreen mode |
-| **Click** | Add new blob at mouse position |
-| **Shift+Click** | Remove nearest blob |
-
-## Project Structure
-
+### Raspberry Pi Installation
+```bash
+# TODO: Add Raspberry Pi specific setup instructions
+# - Auto-start on boot configuration
+# - Full screen display setup
+# - System requirements
 ```
-p5.js/
+
+### Controls
+- [V] - Toggle direction arrows
+- [C] - Toggle configuration panel
+- [Space] - Toggle terminal visibility
+- [Additional controls as needed]
+
+## Creative Vision
+
+### Artistic Concept
+[Describe your artistic vision and what you're trying to express]
+
+### Specialization for Display Space
+[Explain how this work is specialized for the installation space]
+[Describe creative decisions made for the physical context]
+
+### Technical Challenges & Solutions
+[Document technical issues encountered and how they were resolved]
+[Include insights that would help other artists working in similar spaces]
+
+## Documentation
+
+### Video Documentation
+- **Main Installation Video**: [TODO: Add video link]
+- **Process Documentation**: [TODO: Add additional video links as needed]
+
+### Blog Post
+- **Portfolio Link**: [TODO: Add link to blog post]
+
+## Technical Details
+
+### File Structure
+```
+├── index.html          # Main application entry point
+├── sketch.js           # Main p5.js simulation logic
+├── p5.js              # Local p5.js library (offline capability)
+├── config.json        # Configuration parameters
 ├── src/
-│   ├── Blob.js          # Main Blob class with movement and properties
-│   └── Team.js          # Team management class
-├── sketch.js            # Main p5.js sketch and simulation logic
-├── index.html           # Web page with canvas and UI
-├── package.json         # npm configuration and dependencies
-└── README.md           # This file
+│   ├── Team.js        # Team class implementation
+│   └── Blob.js        # Blob class implementation
+├── assets/            # Audio and visual assets
+└── README.md          # This file
 ```
 
-## Architecture
+### Configuration Parameters
+[List key configuration options available in config.json]
+- Initial blob count
+- Team dynamics settings
+- Visual parameters
+- Performance settings
 
-### Object-Oriented Design
-- **Blob Class**: Encapsulates individual blob behavior, properties, and rendering
-- **Team Class**: Manages groups of blobs with shared properties and statistics
-- **Modular Structure**: Separate files for different concerns
+## Development Notes
 
-### Movement Algorithm
-Each blob uses a combination of steering behaviors:
-1. **Seek Force** (60%): Direct movement towards target
-2. **Wander Force** (20%): Random exploration
-3. **Separation Force** (150%): Collision avoidance
-4. **Cohesion Force** (Leadership-based): Team coordination
+### Technology Stack
+- p5.js for graphics and animation
+- HTML5 Canvas for rendering
+- JavaScript ES6+ features
+- Local file serving (no CDN dependencies)
 
-### Visual Indicators
-- **Blob Size**: Proportional to strength
-- **Team Colors**: Inherited from team assignment
-- **Leadership Ring**: Golden ring for high-leadership blobs (>75)
-- **Strength Fill**: Inner circle opacity based on strength
+### Performance Considerations
+- [Note any performance optimizations]
+- [Scaling behavior for different screen sizes]
+- [Resource usage considerations]
 
-## Customization
+## Future Enhancements
 
-### Adding New Teams
-```javascript
-// In sketch.js, modify the initializeTeams function
-const teamNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta'];
-```
+- [ ] [TODO: List potential improvements]
+- [ ] [TODO: Additional features to implement]
+- [ ] [TODO: Performance optimizations]
 
-### Adjusting Blob Properties
-```javascript
-// In Blob.js constructor, modify property ranges
-this.leadership = Math.floor(Math.random() * 100) + 1;  // 1-100
-this.strength = Math.floor(Math.random() * 100) + 1;    // 1-100
-```
+## Credits
 
-### Modifying Movement Behavior
-```javascript
-// In Blob.js update method, adjust force weights
-seekForce.mult(0.6);      // Target seeking strength
-wanderForce.mult(0.2);    // Random exploration
-separateForce.mult(1.5);  // Collision avoidance
-cohesionForce.mult(...);  // Team cohesion (leadership-based)
-```
-
-## Performance Notes
-
-- Automatically scales blob count based on screen size for optimal performance
-- Optimized for modern hardware with responsive fullscreen support
-- Uses efficient vector calculations and force-based movement
-- Separation behavior uses spatial optimization for better performance
-- Responsive canvas that adapts to window resizing
-- UI elements scale with screen size for better readability
-
-## Browser Compatibility
-
-- Chrome/Chromium (recommended)
-- Firefox
-- Safari
-- Edge
-
-Requires modern JavaScript features (ES6+) and HTML5 Canvas support.
+**Artist**: [Your Name]
+**Course**: [Course Name/Number]
+**Institution**: [Institution Name]
+**Date**: [Project Date]
 
 ## License
 
-MIT License - feel free to modify and use for your own projects!
+[Specify license if applicable]
+
+---
+
+*This generative art installation was created as part of Module 1: Generative Art assignment, designed to work on any canvas while meeting the technical constraints of digital-only output and responsive display adaptation.*
