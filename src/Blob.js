@@ -302,18 +302,23 @@ class Blob {
             }
         }
 
-        // Regular individual interaction logic
+        // Regular individual interaction logic - EASIER COOPERATION
         const myCoopProb = this.team.getCooperationProbability();
         const otherCoopProb = other.team.getCooperationProbability();
         
         const myWantsToCoop = Math.random() < myCoopProb;
         const otherWantsToCoop = Math.random() < otherCoopProb;
 
-        if (myWantsToCoop && otherWantsToCoop) {
-            // Both want to cooperate - merge teams
+        // Make cooperation more likely - if either wants to cooperate AND the other isn't very aggressive
+        const canCooperate = (myWantsToCoop && other.team.aggression < 70) || 
+                           (otherWantsToCoop && this.team.aggression < 70) ||
+                           (myWantsToCoop && otherWantsToCoop);
+
+        if (canCooperate) {
+            // Cooperate - merge teams
             this.cooperate(other);
         } else {
-            // At least one wants to fight
+            // Fight
             this.fight(other);
         }
     }
@@ -349,12 +354,12 @@ class Blob {
      * @param {Blob} other - The other blob
      */
     cooperate(other) {
-        // Check if teams can merge (size limits)
+        // Check if teams can merge (size limits) - EASIER TEAM FORMATION
         const combinedSize = this.team.members.length + other.team.members.length;
         const maxAllowed = Math.max(this.team.maxSize, other.team.maxSize);
 
-        if (combinedSize <= maxAllowed) {
-            // Successful cooperation
+        if (combinedSize <= maxAllowed || (this.team.isIndividual || other.team.isIndividual)) {
+            // Successful cooperation (easier for individual blobs to join teams)
             const newTeam = this.team.mergeWith(other.team);
             
             // Update global teams array
@@ -410,27 +415,60 @@ class Blob {
      * @param {Blob} loser - The losing blob
      */
     applyCombatEffects(winner, loser) {
-        // Winner's team gains morale and may absorb loser
-        winner.team.morale = Math.min(100, winner.team.morale + 10);
+        // STRENGTH-BASED DAMAGE SYSTEM
+        const winnerStrength = winner.strength;
+        const loserStrength = loser.strength;
         
-        // Loser's team loses morale
-        loser.team.morale = Math.max(0, loser.team.morale - 15);
+        // Calculate damage based on strength difference - MEANINGFUL COMBAT
+        const strengthDifference = Math.abs(winnerStrength - loserStrength);
+        const baseDamage = config.baseDamage || 8; // Use config value
+        const strengthDamage = Math.floor(strengthDifference / 8); // 1 damage per 8 strength difference (was 20)
         
-        // MUCH REDUCED absorption to prevent blobs disappearing
+        const damageToLoser = baseDamage + strengthDamage + Math.floor(Math.random() * 6); // 8-14+ damage
+        
+        // TEAM SIZE PROTECTION - MINIMAL + LARGE TEAM PENALTY
+        const loserTeamSize = loser.team.members.length;
+        let teamProtection = Math.max(0, loserTeamSize - 1) * (config.teamSizeProtection || 0.05); // Use config value
+        
+        // LARGE TEAM PENALTY - Teams over 6 members take EXTRA damage!
+        if (loserTeamSize > 6) {
+            const largePenalty = (loserTeamSize - 6) * (config.largePenaltyRate || 0.15); // Use config value
+            teamProtection = teamProtection - largePenalty; // Negative protection = more damage
+        }
+        
+        const finalDamageToLoser = Math.max(2, Math.floor(damageToLoser * (1 - teamProtection))); // Can be much higher than base damage!
+        
+        const lifeGainToWinner = Math.floor(finalDamageToLoser * (config.winnerLifeGain || 0.4)); // Use config value
+        
+        // Apply life changes - Winner gains, loser loses
+        winner.team.life = Math.min(100, winner.team.life + lifeGainToWinner); // Winner gains life!
+        loser.team.life = Math.max(0, loser.team.life - finalDamageToLoser);
+        
+        console.log(`💥 Combat: ${winner.team.name} (${winnerStrength} str) vs ${loser.team.name} (${loserStrength} str)`);
+        console.log(`   Result: Winner +${lifeGainToWinner} life, Loser -${finalDamageToLoser} life (${loserTeamSize} members = ${Math.floor(teamProtection*100)}% modifier)`);
+        console.log(`   Result: ${winner.team.name} life: ${winner.team.life.toFixed(0)}, ${loser.team.name} life: ${loser.team.life.toFixed(0)}`);
+        
+        // Check if any team died from this combat
+        if (winner.team.life <= 0) {
+            console.log(`💀 ${winner.team.name} died from combat damage!`);
+        }
+        if (loser.team.life <= 0) {
+            console.log(`💀 ${loser.team.name} died from combat damage!`);
+        }
+        
+        // Winner becomes more aggressive, loser becomes desperate - INCREASED AGGRESSION
+        winner.team.aggression = Math.min(100, winner.team.aggression + (config.aggressionWinnerIncrease || 4)); // Use config value
+        loser.team.aggression = Math.min(100, loser.team.aggression + (config.aggressionLoserIncrease || 10)); // Use config value
+        
+        // SIMPLIFIED ABSORPTION: Based on aggression levels - BALANCED
         const canAbsorb = winner.team.members.length < winner.team.maxSize;
-        const shouldAbsorb = loser.team.morale < 10 && Math.random() < 0.05; // Much lower chance (5% instead of 30%)
+        const shouldAbsorb = winner.team.aggression > 65 && loser.team.aggression < 35 && Math.random() < 0.08; // Reduced from 15% to 8%
         
         if (canAbsorb && shouldAbsorb) {
-            // Absorb the losing blob - actually remove it from the global blobs array
+            // Absorb the losing blob - move to winner's team (DON'T remove from global array)
             console.log(`ABSORPTION: ${loser.team.name} blob absorbed by ${winner.team.name}`);
             loser.team.removeMember(loser);
-            
-            // CRITICAL: Remove the absorbed blob from the global blobs array
-            const globalIndex = blobs.indexOf(loser);
-            if (globalIndex > -1) {
-                blobs.splice(globalIndex, 1);
-                console.log(`Removed absorbed blob from global array. Population now: ${blobs.length}`);
-            }
+            winner.team.addMember(loser);
             
             // Clean up empty teams
             if (loser.team.members.length === 0) {
@@ -824,16 +862,27 @@ class Blob {
         // Team leader indicator - special crown-like indicator
         if (this.isTeamLeader) {
             noFill();
-            // Bright, pulsing indicator for team leaders
-            const pulse = sin(millis() * 0.008) * 0.3 + 0.7; // Pulse between 0.4 and 1.0
-            const crownColor = color(255, 215, 0, 180 * pulse); // Gold color with pulse
+            // Bright, pulsing indicator for team leaders - more prominent
+            const pulse = sin(millis() * 0.01) * 0.4 + 0.6; // Pulse between 0.2 and 1.0
+            const crownColor = color(255, 215, 0, 200 * pulse); // Gold color with pulse
             stroke(crownColor);
-            strokeWeight(3);
-            ellipse(this.position.x, this.position.y, this.size + 12);
+            strokeWeight(4); // Thicker crown
+            ellipse(this.position.x, this.position.y, this.size + 16);
             
             // Inner crown ring
-            strokeWeight(1);
-            ellipse(this.position.x, this.position.y, this.size + 8);
+            strokeWeight(2);
+            ellipse(this.position.x, this.position.y, this.size + 10);
+            
+            // Crown points (decorative)
+            strokeWeight(3);
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * TWO_PI;
+                const x1 = this.position.x + cos(angle) * (this.size/2 + 8);
+                const y1 = this.position.y + sin(angle) * (this.size/2 + 8);
+                const x2 = this.position.x + cos(angle) * (this.size/2 + 12);
+                const y2 = this.position.y + sin(angle) * (this.size/2 + 12);
+                line(x1, y1, x2, y2);
+            }
         }
         
         // Draw target line and directions (separate toggle)

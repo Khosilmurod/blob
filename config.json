@@ -1,0 +1,16 @@
+{
+  "initialBlobCount": 200,
+  "teamStartAggressionMin": 10,
+  "teamStartAggressionMax": 50,
+  "teamMaxSizeMin": 6,
+  "teamMaxSizeMax": 14,
+  "baseDamage": 8,
+  "winnerLifeGain": 0.4,
+  "teamSizeProtection": 0.05,
+  "largePenaltyRate": 0.15,
+  "lifeRegenRate": 0.8,
+  "teamGrowthBonus": 5,
+  "aggressionWinnerIncrease": 2,
+  "aggressionLoserIncrease": 4,
+  "aggressionDecayRate": 0.5
+}

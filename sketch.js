@@ -2,10 +2,18 @@
 let blobs = [];
 let teams = [];
 let canvas;
-let showStats = true;
+let showStats = true; // Stats panel is now always visible
 let showDebug = false;
-let showDirections = false; // Toggle for direction arrows
-let showTeamCircles = false; // Toggle for team formation circles
+let showDirections = true; // Toggle for direction arrows - enabled by default
+let showTeamCircles = true; // Toggle for team formation circles - enabled by default
+let showInstructions = false; // Toggle for instructions panel
+
+// Configuration object - loaded from config.json
+let config = {};
+
+// UI State
+let scrollOffset = 0;
+let maxScroll = 0;
 
 // Generative Art Color System
 class ColorPalette {
@@ -68,6 +76,32 @@ let colorPalette;
 /**
  * p5.js setup function - runs once at start
  */
+function preload() {
+    // Load configuration from config.json
+    loadJSON('config.json', 
+        (data) => {
+            config = data;
+            window.config = config; // Make globally accessible
+            console.log('✅ Configuration loaded:', config);
+        },
+        (error) => {
+            console.error('❌ Failed to load config.json, using defaults:', error);
+            // Set default values if config fails to load
+            config = {
+                initialBlobCount: 100,
+                teamStartAggression: { min: 10, max: 50 },
+                teamMaxSize: { min: 6, max: 14 },
+                combat: { baseDamage: 8, strengthDivisor: 8, randomDamageRange: 6 },
+                winnerLifeGain: 0.4,
+                teamSizeProtection: 0.05,
+                largePenaltyThreshold: 6,
+                largePenaltyRate: 0.15
+            };
+            window.config = config; // Make globally accessible
+        }
+    );
+}
+
 function setup() {
     // Create fullscreen canvas and attach to container
     canvas = createCanvas(windowWidth, windowHeight);
@@ -80,7 +114,7 @@ function setup() {
     // Initialize teams
     initializeTeams();
     
-    // Create blobs
+    // Create blobs using config
     createBlobs();
     
     console.log(`Created ${blobs.length} blobs across ${teams.length} teams`);
@@ -120,11 +154,40 @@ function draw() {
     // Debug: Check if blob count changed unexpectedly
     if (blobs.length < blobCount) {
         console.log(`WARNING: Blob count decreased from ${blobCount} to ${blobs.length}`);
+        console.log(`This should only happen during team dissolution, not absorption!`);
     }
     
-    // Draw UI
+    // Ensure we maintain 100 blobs - add missing ones if population dropped
+    const targetPopulation = 100;
+    if (blobs.length < targetPopulation && frameCount % 60 === 0) { // Check every second
+        const missing = targetPopulation - blobs.length;
+        console.log(`🔧 Population dropped to ${blobs.length}. Adding ${missing} blobs to reach ${targetPopulation}.`);
+        
+        for (let i = 0; i < missing; i++) {
+            const margin = 50;
+            const x = random(margin, windowWidth - margin);
+            const y = random(margin, windowHeight - margin);
+            
+            const newBlob = new Blob(x, y, null);
+            newBlob.showDebug = showDebug;
+            newBlob.showDirections = showDirections;
+            newBlob.showTeamCircles = showTeamCircles;
+            blobs.push(newBlob);
+            
+            if (!teams.includes(newBlob.team)) {
+                teams.push(newBlob.team);
+            }
+        }
+    }
+    
+    // Draw UI - toggle with space key
     if (showStats) {
         drawStats();
+    }
+    
+    // Draw instructions panel if enabled
+    if (showInstructions) {
+        drawInstructions();
     }
 }
 
@@ -140,8 +203,8 @@ function initializeTeams() {
  * Create blobs and assign them to teams
  */
 function createBlobs() {
-    // Fixed number of blobs - 64 total
-    const numBlobs = 64;
+    // Use config for blob count, fallback to 100 if not loaded
+    const numBlobs = config.initialBlobCount || 100;
     
     for (let i = 0; i < numBlobs; i++) {
         // Random position with margin from edges
@@ -167,95 +230,344 @@ function createBlobs() {
  * Draw statistics panel with controls
  */
 function drawStats() {
-    // Calculate panel dimensions based on screen size
-    const panelWidth = Math.min(350, windowWidth * 0.28);
-    const panelHeight = Math.min(400, windowHeight * 0.55);
+    const panelWidth = Math.min(400, windowWidth * 0.25);
     
-    // Semi-transparent background
-    fill(0, 0, 0, 150);
-    noStroke();
-    rect(10, 10, panelWidth, panelHeight);
-    
-    // Title
-    fill(255);
-    textAlign(LEFT);
-    textSize(Math.min(16, windowWidth * 0.016));
-    textStyle(BOLD);
-    text('Blob Simulation', 20, 30);
-    
-    // General stats
-    textSize(Math.min(12, windowWidth * 0.012));
-    textStyle(NORMAL);
-    text(`Total Blobs: ${blobs.length}`, 20, 50);
-    text(`Active Teams: ${teams.length}`, 20, 65);
-    text(`Teams in Combat: ${teams.filter(t => t.isInCombat).length}`, 20, 80);
-    text(`Screen: ${windowWidth}x${windowHeight}`, 20, 95);
-    
-    // Team stats
-    let yOffset = 115;
-    textStyle(BOLD);
-    text('Team Statistics:', 20, yOffset);
-    yOffset += 15;
-    
-    textStyle(NORMAL);
-    // Sort teams by size for better display
+    // Calculate dynamic height based on content
     const sortedTeams = teams.filter(team => team.members.length > 0)
-                            .sort((a, b) => b.members.length - a.members.length)
-                            .slice(0, 8); // Show top 8 teams
+                            .sort((a, b) => {
+                                const aStrength = a.members.reduce((sum, blob) => sum + blob.strength, 0);
+                                const bStrength = b.members.reduce((sum, blob) => sum + blob.strength, 0);
+                                return bStrength - aStrength;
+                            });
+    const itemHeight = 50; // Reduced from 65
+    const headerHeight = 90; // Reduced from 110
+    const buttonAreaHeight = 45; // Reduced from 60
+    const contentHeight = Math.min(sortedTeams.length * itemHeight, windowHeight - headerHeight - buttonAreaHeight - 40);
+    const panelHeight = headerHeight + contentHeight + buttonAreaHeight;
+    
+    // Position terminal on the right side
+    const panelX = windowWidth - panelWidth;
+    
+    // Terminal-style black panel
+    push();
+    
+    // Solid black background
+    fill(0, 0, 0, 240);
+    stroke(160, 160, 160, 180); // Muted gray border instead of green
+    strokeWeight(2);
+    rect(panelX, 20, panelWidth, panelHeight, 0); // No rounded corners for terminal look
+    
+    // Terminal scanlines effect
+    stroke(120, 120, 120, 20); // Subtle gray scanlines
+    strokeWeight(1);
+    for (let i = 20; i < panelHeight + 20; i += 4) {
+        line(panelX, i, panelX + panelWidth, i);
+    }
+    
+    // Terminal header section
+    fill(0, 0, 0);
+    noStroke();
+    rect(panelX, 20, panelWidth, 65); // Reduced from 80
+    
+    // Header border
+    stroke(160, 160, 160); // Gray border
+    strokeWeight(1);
+    line(panelX, 20, panelX + panelWidth, 20);
+    line(panelX, 85, panelX + panelWidth, 85); // Adjusted position
+    
+    // Terminal header text with ASCII art
+    fill(200, 200, 200); // Light gray text instead of bright green
+    textAlign(LEFT, CENTER);
+    textSize(14);
+    textFont('Courier New'); // Monospace font
+    textStyle(BOLD);
+    text('> BLOB_DYNAMICS.EXE', panelX + 10, 35); // Adjusted position
+    
+    textSize(9); // Reduced font size
+    textStyle(NORMAL);
+    text(`[SYSTEM] ${blobs.length} ENTITIES | ${teams.filter(t => t.members.length > 0).length} GROUPS`, panelX + 10, 50);
+    text(`[STATUS] ${teams.filter(t => t.isInCombat).length} HOSTILE | RES:${windowWidth}x${windowHeight}`, panelX + 10, 62);
+    text('━'.repeat(Math.floor(panelWidth/8)), panelX + 10, 75);
+    
+    // Scrollable content area
+    const contentY = 90; // Reduced from 110
+    
+    // Create clipping mask for scrollable area
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(panelX, contentY, panelWidth, contentHeight);
+    drawingContext.clip();
+    
+    // Sort teams by strength for better display (reuse the already calculated sortedTeams)
+    
+    let yPos = contentY - scrollOffset;
     
     sortedTeams.forEach((team, index) => {
-        if (yOffset < panelHeight - 120) {
-            const stats = team.getStats();
-            
-            // Team color indicator
-            fill(team.color);
-            noStroke();
-            ellipse(30, yOffset - 4, 8);
-            
-            // Team info with new stats
-            fill(255);
-            let teamText = team.isIndividual ? `${team.name} (Solo)` : team.name;
-            if (team.isInCombat) {
-                teamText += ` ⚔️`; // Combat indicator
-            }
-            text(`${teamText}: ${stats.memberCount}/${stats.maxSize}`, 45, yOffset);
-            yOffset += 12;
-            if (yOffset < panelHeight - 110) {
-                text(`  Morale: ${stats.morale.toFixed(0)} | Aggr: ${stats.aggression.toFixed(0)}`, 45, yOffset);
-                yOffset += 12;
-            }
-            if (yOffset < panelHeight - 110) {
-                text(`  Strength: ${stats.totalStrength} | Coop: ${(stats.cooperation * 100).toFixed(0)}%`, 45, yOffset);
-                yOffset += 15;
-            }
+        // Only render if visible
+        if (yPos + itemHeight > contentY && yPos < contentY + contentHeight) {
+            drawTerminalTeamCard(team, panelX + 5, yPos, panelWidth - 10, itemHeight - 5);
         }
+        yPos += itemHeight;
     });
     
-    // Controls section
-    yOffset = Math.max(yOffset, panelHeight - 120);
-    fill(255);
-    textStyle(BOLD);
-    textSize(Math.min(14, windowWidth * 0.014));
-    text('Controls:', 20, yOffset);
-    yOffset += 15;
+    // Calculate max scroll
+    maxScroll = Math.max(0, sortedTeams.length * itemHeight - contentHeight + 20);
     
-    textSize(Math.min(11, windowWidth * 0.011));
+    drawingContext.restore();
+    
+    // Terminal-style scroll indicator
+    if (maxScroll > 0) {
+        const scrollBarHeight = (contentHeight / (sortedTeams.length * itemHeight)) * contentHeight;
+        const scrollBarY = contentY + (scrollOffset / maxScroll) * (contentHeight - scrollBarHeight);
+        
+        // ASCII scroll bar
+        stroke(120, 120, 120, 100); // Muted gray
+        strokeWeight(1);
+        line(panelX + panelWidth - 6, contentY, panelX + panelWidth - 6, contentY + contentHeight);
+        
+        stroke(180, 180, 180); // Lighter gray for indicator
+        strokeWeight(3);
+        line(panelX + panelWidth - 6, scrollBarY, panelX + panelWidth - 6, scrollBarY + scrollBarHeight);
+    }
+    
+    // Draw interactive buttons
+    drawButtons(panelX, panelWidth);
+    
+    pop();
+}
+
+function drawTerminalTeamCard(team, x, y, w, h) {
+    const stats = team.getStats();
+    const totalStrength = team.members.reduce((sum, blob) => sum + blob.strength, 0);
+    
+    // Terminal card background
+    fill(0, 0, 0);
+    stroke(120, 120, 120, 100); // Muted gray border
+    strokeWeight(1);
+    rect(x, y, w, h);
+    
+    // Team color indicator - ASCII style
+    fill(team.color);
+    noStroke();
+    rect(x + 2, y + 2, 3, h - 4);
+    
+    // Terminal-style team header
+    fill(200, 200, 200); // Light gray text
+    textAlign(LEFT, TOP);
+    textSize(10); // Reduced from 12
+    textFont('Courier New');
+    textStyle(BOLD);
+    
+    let teamName = team.isIndividual ? `SOLO_${team.id}` : `TEAM_${team.id}`;
+    let statusIcons = '';
+    if (team.isInCombat) statusIcons += '[HOSTILE]';
+    if (team.leader) statusIcons += '[LEADER]';
+    
+    text(`> ${teamName} ${statusIcons}`, x + 10, y + 6); // Reduced y offset
+    
+    // Members info - terminal style
+    textSize(8); // Reduced from 10
     textStyle(NORMAL);
-    text('Space: Toggle This Panel', 20, yOffset);
-    yOffset += 12;
-    text('D: Toggle Debug Mode', 20, yOffset);
-    yOffset += 12;
-    text('V: Toggle Direction Arrows', 20, yOffset);
-    yOffset += 12;
-    text('C: Toggle Team Circles', 20, yOffset);
-    yOffset += 12;
-    text('R: Reset Simulation', 20, yOffset);
-    yOffset += 12;
-    text('F: Toggle Fullscreen', 20, yOffset);
-    yOffset += 12;
-    text('Click: Add Blob', 20, yOffset);
-    yOffset += 12;
-    text('Shift+Click: Remove Blob', 20, yOffset);
+    fill(150, 150, 150); // Medium gray
+    text(`UNITS: ${stats.memberCount}/${stats.maxSize}`, x + 10, y + 18); // Reduced y offset
+    
+    // ASCII-style stat bars
+    const barY = y + 28; // Reduced from 35
+    const barWidth = Math.floor((w - 20) / 3);
+    
+    // Life bar - ASCII style
+    drawTerminalBar('LIFE', stats.life, 100, x + 10, barY, barWidth);
+    
+    // Aggression bar
+    drawTerminalBar('AGGR', stats.aggression, 100, x + 10 + barWidth, barY, barWidth);
+    
+    // Strength display
+    fill(180, 180, 180); // Light gray
+    textSize(8); // Reduced from 9
+    text(`PWR:${totalStrength}`, x + 10 + barWidth * 2, barY + 6); // Adjusted position
+}
+
+function drawTerminalBar(label, value, maxValue, x, y, width) {
+    const percentage = value / maxValue;
+    const barLength = Math.floor(width / 6) - 1; // Reduced bar length for compact display
+    const fillLength = Math.floor(barLength * percentage);
+    
+    // Label
+    fill(160, 160, 160); // Muted gray
+    textSize(7); // Reduced from 8
+    textFont('Courier New');
+    text(label, x, y);
+    
+    // ASCII progress bar
+    let barString = '[';
+    for (let i = 0; i < barLength; i++) {
+        if (i < fillLength) {
+            barString += '█'; // Filled block
+        } else {
+            barString += '░'; // Empty block
+        }
+    }
+    barString += ']';
+    
+    // Color based on percentage - minimal color scheme
+    if (percentage > 0.7) {
+        fill(180, 180, 180); // Light gray for high
+    } else if (percentage > 0.3) {
+        fill(140, 140, 140); // Medium gray for medium
+    } else {
+        fill(100, 100, 100); // Dark gray for low
+    }
+    
+    text(barString, x, y + 8); // Reduced spacing
+    
+    // Value
+    fill(160, 160, 160, 180); // Muted gray with transparency
+    textSize(6); // Reduced from 7
+    text(`${Math.round(value)}`, x + barString.length * 3, y + 16); // Adjusted position
+}
+
+/**
+ * Draw instructions panel
+ */
+function drawInstructions() {
+    const panelWidth = 300;
+    const panelHeight = 250;
+    const terminalWidth = Math.min(400, windowWidth * 0.25);
+    const x = windowWidth - terminalWidth - panelWidth - 10; // Position to the left of terminal
+    const y = 10;
+    
+    // Terminal-style instructions background
+    fill(0, 0, 0, 220);
+    stroke(160, 160, 160);
+    strokeWeight(1);
+    rect(x, y, panelWidth, panelHeight);
+    
+    // Terminal header
+    fill(200, 200, 200);
+    textAlign(LEFT, TOP);
+    textSize(14);
+    textFont('Courier New');
+    textStyle(BOLD);
+    text('> HELP.TXT', x + 10, y + 10);
+    
+    // Divider
+    stroke(160, 160, 160);
+    line(x + 10, y + 30, x + panelWidth - 10, y + 30);
+    
+    // Instructions text
+    textSize(10);
+    textStyle(NORMAL);
+    fill(180, 180, 180);
+    
+    const instructions = [
+        '[H] - Toggle this help panel',
+        '[D] - Toggle debug info',
+        '[V] - Toggle direction arrows',
+        '[C] - Toggle team circles',
+        '[R] - Reset simulation',
+        '[F] - Toggle fullscreen',
+        '',
+        'MOUSE:',
+        'Scroll - Navigate team list',
+        'Click buttons - Quick actions',
+        '',
+        'SIMULATION:',
+        'Teams form and fight dynamically',
+        'Life decreases in combat',
+        'Aggression naturally decays'
+    ];
+    
+    let yPos = y + 45;
+    instructions.forEach(line => {
+        text(line, x + 10, yPos);
+        yPos += 12;
+    });
+}
+
+/**
+ * Draw interactive buttons in stats panel
+ */
+function drawButtons(panelX, panelWidth) {
+    const buttonSpacing = 4;
+    const buttonWidth = (panelWidth - 10 - (buttonSpacing * 3)) / 4; // Divide width equally among 4 buttons
+    const buttonHeight = 30; // Slightly bigger
+    const startX = panelX + 5;
+    const startY = height - 40;
+    
+    const buttons = [
+        { label: 'RESET', action: 'reset', key: 'R' },
+        { label: 'ARROWS', action: 'arrows', key: 'V', active: showDirections },
+        { label: 'CIRCLES', action: 'circles', key: 'C', active: showTeamCircles },
+        { label: 'HELP', action: 'help', key: 'H', active: showInstructions }
+    ];
+    
+    buttons.forEach((button, index) => {
+        const x = startX + (buttonWidth + buttonSpacing) * index;
+        const y = startY;
+        
+        // Button background
+        if (button.active) {
+            fill(80, 80, 80);
+        } else {
+            fill(40, 40, 40);
+        }
+        stroke(120, 120, 120);
+        strokeWeight(1);
+        rect(x, y, buttonWidth, buttonHeight);
+        
+        // Button text
+        fill(button.active ? 200 : 160, button.active ? 200 : 160, button.active ? 200 : 160);
+        textAlign(CENTER, CENTER);
+        textSize(10);
+        textFont('Courier New');
+        textStyle(NORMAL);
+        text(button.label, x + buttonWidth/2, y + buttonHeight/2 - 2);
+        
+        // Key indicator
+        textSize(7);
+        fill(120, 120, 120);
+        text(`[${button.key}]`, x + buttonWidth/2, y + buttonHeight - 6);
+        
+        // Store button bounds for click detection
+        button.x = x;
+        button.y = y;
+        button.width = buttonWidth;
+        button.height = buttonHeight;
+    });
+    
+    // Store buttons globally for click detection
+    window.uiButtons = buttons;
+}
+
+/**
+ * Handle mouse clicks on buttons
+ */
+function mousePressed() {
+    if (window.uiButtons) {
+        window.uiButtons.forEach(button => {
+            if (mouseX >= button.x && mouseX <= button.x + button.width &&
+                mouseY >= button.y && mouseY <= button.y + button.height) {
+                
+                // Execute button action
+                switch(button.action) {
+                    case 'reset':
+                        resetSimulation();
+                        break;
+                    case 'arrows':
+                        showDirections = !showDirections;
+                        blobs.forEach(blob => blob.showDirections = showDirections);
+                        break;
+                    case 'circles':
+                        showTeamCircles = !showTeamCircles;
+                        blobs.forEach(blob => blob.showTeamCircles = showTeamCircles);
+                        break;
+                    case 'help':
+                        showInstructions = !showInstructions;
+                        break;
+                }
+            }
+        });
+    }
 }
 
 /**
@@ -290,6 +602,10 @@ function keyPressed() {
         case 'f':
         case 'F':
             toggleFullscreen();
+            break;
+        case 'h':
+        case 'H':
+            showInstructions = !showInstructions;
             break;
     }
 }
@@ -333,21 +649,21 @@ function checkTeamDynamics() {
         });
     }
     
-    // Check for teams with 0 morale - they die and get replaced
-    if (frameCount % 180 === 0) { // Every 3 seconds at 60fps
+    // Check for teams with 0 life - they die and get replaced (check more frequently)
+    if (frameCount % 60 === 0) { // Every 1 second at 60fps (faster than before)
         const initialBlobCount = blobs.length;
-        const deadTeams = teams.filter(team => team.morale <= 0 && team.members.length > 0);
+        const deadTeams = teams.filter(team => team.life <= 0 && team.members.length > 0);
         
         if (deadTeams.length > 0) {
             let totalDeadBlobs = 0;
             
-            console.log(`💀 Processing ${deadTeams.length} dead teams...`);
+            console.log(`💀 Processing ${deadTeams.length} dead teams that lost all life...`);
             
             deadTeams.forEach(team => {
                 const deadBlobCount = team.members.length;
                 totalDeadBlobs += deadBlobCount;
                 
-                console.log(`💀 Team ${team.name} died from zero morale! ${deadBlobCount} blobs perished.`);
+                console.log(`💀 Team ${team.name} died from zero life! ${deadBlobCount} blobs perished.`);
                 
                 // Remove all dead blobs from the main blobs array
                 team.members.forEach(deadBlob => {
@@ -359,11 +675,11 @@ function checkTeamDynamics() {
                 
                 // Clear the team's member list immediately to prevent reprocessing
                 team.members = [];
-                team.morale = -1; // Mark as processed
+                team.life = -1; // Mark as processed
             });
             
             // Create exactly the same number of new random blobs to replace ALL the dead ones
-            console.log(`✨ Creating ${totalDeadBlobs} new blobs to replace the dead...`);
+            console.log(`✨ Creating ${totalDeadBlobs} new blobs to replace the dead teams...`);
             for (let i = 0; i < totalDeadBlobs; i++) {
                 const margin = 50;
                 const x = random(margin, windowWidth - margin);
@@ -390,7 +706,7 @@ function checkTeamDynamics() {
         }
         
         // Remove dead teams from teams array (only those marked as processed)
-        teams = teams.filter(team => team.members.length > 0 && team.morale >= 0);
+        teams = teams.filter(team => team.members.length > 0 && team.life >= 0);
     }
     
     // Clean up empty teams
@@ -504,4 +820,14 @@ function logBlobInfo() {
     teams.forEach(team => {
         console.log(team.getStats());
     });
+}
+
+// Mouse wheel scrolling for stats panel
+function mouseWheel(event) {
+    if (showStats && mouseX < Math.min(400, windowWidth * 0.25)) {
+        // Scroll in stats panel
+        scrollOffset += event.delta * 3;
+        scrollOffset = Math.max(0, Math.min(scrollOffset, maxScroll));
+        return false; // Prevent page scrolling
+    }
 }
