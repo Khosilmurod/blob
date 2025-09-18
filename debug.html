@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blob Simulation - Debug</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #222; 
+            color: white; 
+            font-family: monospace; 
+        }
+        #debug { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            background: rgba(0,0,0,0.8); 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <div id="debug">
+        <h3>🔍 Debug Info</h3>
+        <div id="status">Loading...</div>
+    </div>
+    
+    <script>
+        const debug = document.getElementById('status');
+        
+        function updateStatus(msg) {
+            console.log(msg);
+            debug.innerHTML += '<br>' + msg;
+        }
+        
+        updateStatus('🔄 Starting debug test...');
+        
+        // Check if p5.js loaded
+        if (typeof p5 !== 'undefined') {
+            updateStatus('✅ p5.js loaded successfully');
+        } else {
+            updateStatus('❌ p5.js failed to load');
+        }
+        
+        function setup() {
+            updateStatus('🚀 p5.js setup() called');
+            try {
+                createCanvas(400, 400);
+                updateStatus('✅ Canvas created successfully');
+                background(50, 100, 150);
+                updateStatus('✅ Background set');
+            } catch (error) {
+                updateStatus('❌ Setup error: ' + error.message);
+            }
+        }
+        
+        function draw() {
+            // Simple animation to test if draw loop works
+            fill(255, 0, 0);
+            ellipse(mouseX, mouseY, 20, 20);
+        }
+        
+        updateStatus('🔄 Script loaded, waiting for p5.js...');
+    </script>
+</body>
+</html>

@@ -15,11 +15,23 @@ let backgroundMusic;
  * Preload assets before setup
  */
 function preload() {
-    // Load background music
-    backgroundMusic = loadSound('assets/Traditional Uzbek Music - Glorious Morning.mp3', 
-        () => console.log('Background music loaded successfully'),
-        () => console.log('Failed to load background music - file may not exist')
-    );
+    console.log('🔄 Preload started...');
+    
+    // Try to load background music, but don't let it block the app
+    try {
+        if (typeof loadSound !== 'undefined') {
+            backgroundMusic = loadSound('assets/Traditional Uzbek Music - Glorious Morning.mp3', 
+                () => console.log('🎵 Background music loaded successfully'),
+                () => console.log('⚠️ Failed to load background music - continuing without audio')
+            );
+        } else {
+            console.log('⚠️ p5.sound not available - continuing without audio');
+        }
+    } catch (error) {
+        console.log('⚠️ Audio loading error - continuing without audio:', error);
+    }
+    
+    console.log('✅ Preload completed');
 }
 
 // Configuration object - loaded from config.json
@@ -118,31 +130,56 @@ function preload() {
 }
 
 function setup() {
-    // Create fullscreen canvas and attach to container
-    canvas = createCanvas(windowWidth, windowHeight);
-    canvas.parent('sketch-container');
+    console.log('🚀 Setup started...');
     
-    // Initialize start time for instructions
-    startTime = millis();
-    
-    // Setup background music
-    if (backgroundMusic && backgroundMusic.isLoaded()) {
-        backgroundMusic.setVolume(0.3); // Set volume to 30%
-        backgroundMusic.loop(); // Loop continuously
-        console.log('Background music started');
+    try {
+        // Create fullscreen canvas and attach to container
+        console.log('📐 Creating canvas...');
+        canvas = createCanvas(windowWidth, windowHeight);
+        canvas.parent('sketch-container');
+        console.log('✅ Canvas created successfully');
+        
+        // Initialize start time for instructions
+        startTime = millis();
+        
+        // Setup background music (optional)
+        try {
+            if (backgroundMusic && backgroundMusic.isLoaded()) {
+                backgroundMusic.setVolume(0.3);
+                backgroundMusic.loop();
+                console.log('🎵 Background music started');
+            }
+        } catch (audioError) {
+            console.log('⚠️ Audio setup failed, continuing without music:', audioError);
+        }
+        
+        // Initialize generative art color palette
+        console.log('🎨 Initializing color palette...');
+        colorPalette = new ColorPalette();
+        window.colorPalette = colorPalette; // Make globally accessible
+        console.log('✅ Color palette initialized');
+        
+        // Initialize teams
+        console.log('👥 Initializing teams...');
+        initializeTeams();
+        console.log('✅ Teams initialized');
+        
+        // Create blobs using config
+        console.log('🔵 Creating blobs...');
+        createBlobs();
+        console.log('✅ Blobs created');
+        
+        console.log(`🎉 Setup completed! Created ${blobs.length} blobs across ${teams.length} teams`);
+        
+    } catch (error) {
+        console.error('❌ SETUP ERROR:', error);
+        // Try to show error on screen
+        document.body.innerHTML = `<div style="color: white; font-family: monospace; padding: 20px; background: #222;">
+            <h2>❌ Setup Error</h2>
+            <p>Error: ${error.message}</p>
+            <p>Check browser console (F12) for more details.</p>
+        </div>`;
     }
-    
-    // Initialize generative art color palette
-    colorPalette = new ColorPalette();
-    window.colorPalette = colorPalette; // Make globally accessible
-    
-    // Initialize teams
-    initializeTeams();
-    
-    // Create blobs using config
-    createBlobs();
-    
-    console.log(`Created ${blobs.length} blobs across ${teams.length} teams`);
 }
 
 /**
