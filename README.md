@@ -42,11 +42,62 @@ npx serve . -p 8080
 ```
 
 ### Raspberry Pi Installation
+
+#### Automatic Installation (Recommended)
 ```bash
-# TODO: Add Raspberry Pi specific setup instructions
-# - Auto-start on boot configuration
-# - Full screen display setup
-# - System requirements
+# Clone the repository
+git clone https://github.com/[your-username]/blob-simulation.git
+cd blob-simulation
+
+# Run the automated installation script
+chmod +x install-pi.sh
+./install-pi.sh
+
+# Reboot to start the simulation automatically
+sudo reboot
+```
+
+#### Manual Installation
+```bash
+# 1. System Requirements
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y nodejs npm chromium-browser unclutter
+
+# 2. Install project dependencies
+npm install
+
+# 3. Set up auto-start service
+sudo cp blob-simulation.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable blob-simulation.service
+
+# 4. Configure fullscreen kiosk mode
+chmod +x start-simulation.sh
+
+# 5. Start the service
+sudo systemctl start blob-simulation
+```
+
+#### Boot Configuration
+The installation automatically configures:
+- **Auto-login**: Boots directly to desktop without login prompt
+- **Fullscreen Mode**: Chromium launches in kiosk mode (no UI elements)
+- **Auto-start**: Service starts automatically on boot
+- **Screen Management**: Disables screen blanking and sleep mode
+
+#### Manual Control Commands
+```bash
+# Start simulation
+sudo systemctl start blob-simulation
+
+# Stop simulation  
+sudo systemctl stop blob-simulation
+
+# Check status
+sudo systemctl status blob-simulation
+
+# View logs
+journalctl -u blob-simulation -f
 ```
 
 ### Controls

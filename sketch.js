@@ -29,6 +29,14 @@ let config = {};
 let scrollOffset = 0;
 let maxScroll = 0;
 let startTime = 0; // Track when simulation started
+let statsActivatedTime = 0; // When stats panel was activated (0 if not active)
+let helpActivatedTime = 0;  // When help panel was activated (0 if not active)
+
+// Panel Array System - right-justified panels
+let panelArray = []; // Array of active panel objects
+const PANEL_WIDTH = 300;
+const PANEL_SPACING = 10;
+let horizontalScrollOffset = 0; // For horizontal scrolling of panels
 
 // Generative Art Color System
 class ColorPalette {
@@ -209,18 +217,21 @@ function draw() {
         }
     }
     
-    // Draw UI - toggle with space key
+    // Always draw UI buttons
+    drawInitialInstruction();
+    
+    // Draw horizontal scroll indicators for panels
+    drawHorizontalScrollIndicators();
+    
+    // Draw terminal stats when toggled with space key
     if (showStats) {
         drawStats();
-        
-        // Draw instructions panel if enabled - aligned with terminal
-        if (showInstructions) {
-            drawInstructions();
-        }
     }
     
-    // Show initial instruction for first 10 seconds
-    drawInitialInstruction();
+    // Always draw instructions panel if enabled (independent of stats)
+    if (showInstructions) {
+        drawInstructions();
+    }
 }
 
 /**
@@ -262,51 +273,141 @@ function createBlobs() {
  * Draw initial instruction message - always visible
  */
 function drawInitialInstruction() {
-    if (!showStats) {
-        // Position at bottom center
-        const messageX = windowWidth / 2;
-        const messageY = windowHeight - 50;
-        const boxWidth = 280;
-        const boxHeight = 35;
-        const sideBoxWidth = 80; // Increased for internal padding
-        const spacing = 25;
-        const alpha = 255; // Always fully visible
+    // Position at bottom center
+    const messageY = windowHeight - 50;
+    
+    // Create equal-width button boxes
+    const buttonWidth = 120; // Fixed width for all buttons
+    const buttonHeight = 30; // Reduced height for single line
+    const totalButtons = 5; // R, V, SPACE, C, H buttons
+    const buttonSpacing = 10; // Equal spacing between buttons
+    
+    // Calculate total width needed
+    const totalWidth = (buttonWidth * totalButtons) + (buttonSpacing * (totalButtons-1));
+    
+    // Check if buttons fit on screen with some margin
+    const minMargin = 20; // Minimum margin on each side
+    const requiredWidth = totalWidth + (minMargin * 2);
+    
+    // Only draw buttons if they fit
+    if (windowWidth < requiredWidth) {
+        return; // Don't draw buttons if screen is too narrow
+    }
+    
+    // Calculate starting position for leftmost button (to center everything)
+    const startX = (windowWidth - totalWidth) / 2;
+    const alpha = 255; // Always fully visible
+    
+    // Draw boxes with equal spacing and size
+    fill(40, 40, 40, 230);
+    stroke(160, 160, 160, 200);
+    strokeWeight(1);
+    rectMode(CORNER);
+    
+    // RESET button (R)
+    const resetX = startX;
+    rect(resetX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    
+    // ARROWS button (V)
+    const arrowsX = resetX + buttonWidth + buttonSpacing;
+    rect(arrowsX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    
+    // SPACE button (SPACE)
+    const spaceX = arrowsX + buttonWidth + buttonSpacing;
+    rect(spaceX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    
+    // CIRCLES button (C)
+    const circlesX = spaceX + buttonWidth + buttonSpacing;
+    rect(circlesX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    
+    // HELP button (H)
+    const helpX = circlesX + buttonWidth + buttonSpacing;
+    rect(helpX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    
+    // Text for all buttons - single line format
+    fill(200, 200, 200, 255);
+    textAlign(CENTER, CENTER);
+    textFont('Courier New');
+    textSize(12);
+    textStyle(NORMAL);
+    
+    // Single line text for each button (format: "LABEL [KEY]")
+    text('RESET [R]', resetX + buttonWidth/2, messageY);
+    text('ARROWS [V]', arrowsX + buttonWidth/2, messageY);
+    
+    // Dynamic text for SPACE button
+    const terminalAction = showStats ? "HIDE" : "SHOW";
+    text(`${terminalAction} [SPACE]`, spaceX + buttonWidth/2, messageY);
+    
+    text('CIRCLES [C]', circlesX + buttonWidth/2, messageY);
+    text('HELP [H]', helpX + buttonWidth/2, messageY);
+    
+    // Add highlight effect to buttons based on state
+    noFill();
+    strokeWeight(2);
+    
+    // Highlight active buttons
+    if (showDirections) {
+        stroke(120, 200, 120, 180); // Green highlight for active
+        rect(arrowsX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    }
+    
+    if (showStats) {
+        stroke(120, 200, 120, 180); // Green highlight for active
+        rect(spaceX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    }
+    
+    if (showTeamCircles) {
+        stroke(120, 200, 120, 180); // Green highlight for active
+        rect(circlesX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    }
+    
+    if (showInstructions) {
+        stroke(120, 200, 120, 180); // Green highlight for active
+        rect(helpX, messageY - buttonHeight/2, buttonWidth, buttonHeight, 5);
+    }
+    
+    // Reset drawing settings
+    stroke(160, 160, 160);
+    strokeWeight(1);
+}
+
+/**
+ * Draw horizontal scroll indicators when panels overflow
+ */
+function drawHorizontalScrollIndicators() {
+    if (panelArray.length === 0) return;
+    
+    const maxScroll = getMaxHorizontalScroll();
+    if (maxScroll === 0) return; // No scrolling needed
+    
+    const leftmostPanelX = calculatePanelPosition(0);
+    const rightmostPanelX = calculatePanelPosition(panelArray.length - 1) + PANEL_WIDTH;
+    
+    // Left scroll indicator (when content extends beyond left edge and can scroll right to reveal it)
+    if (leftmostPanelX < 0 && horizontalScrollOffset < getMaxHorizontalScroll()) {
+        fill(120, 120, 120, 150);
+        noStroke();
+        triangle(15, windowHeight/2, 5, windowHeight/2 - 10, 5, windowHeight/2 + 10);
         
-        // Main instruction box
-        fill(0, 0, 0, alpha * 0.7);
-        stroke(160, 160, 160, alpha);
-        strokeWeight(1);
-        rectMode(CENTER);
-        rect(messageX, messageY, boxWidth, boxHeight, 5);
-        
-        // Left side box for V key - larger for internal padding
-        rect(messageX - boxWidth/2 - spacing - sideBoxWidth/2, messageY, sideBoxWidth, boxHeight, 5);
-        
-        // Right side box for C key - larger for internal padding
-        rect(messageX + boxWidth/2 + spacing + sideBoxWidth/2, messageY, sideBoxWidth, boxHeight, 5);
-        
-        // Main instruction text - properly centered with padding
-        fill(200, 200, 200, alpha);
-        textAlign(CENTER, CENTER);
-        textSize(12);
-        textFont('Courier New');
-        textStyle(NORMAL);
-        text('Press [SPACE] to show terminal', messageX, messageY);
-        
-        // Side instruction texts - one line only, centered in larger boxes
+        fill(200, 200, 200, 180);
+        textAlign(LEFT, CENTER);
         textSize(10);
-        text('Press [V]', messageX - boxWidth/2 - spacing - sideBoxWidth/2, messageY);
-        text('Press [C]', messageX + boxWidth/2 + spacing + sideBoxWidth/2, messageY);
+        textFont('Courier New');
+        text('◄ SCROLL DOWN', 20, windowHeight/2);
+    }
+    
+    // Right scroll indicator (when we've scrolled and can scroll back to see right content)
+    if (horizontalScrollOffset > 0) {
+        fill(120, 120, 120, 150);
+        noStroke();
+        triangle(windowWidth - 15, windowHeight/2, windowWidth - 5, windowHeight/2 - 10, windowWidth - 5, windowHeight/2 + 10);
         
-        // Subtle pulse effect for main box
-        const pulseAlpha = sin(millis() * 0.005) * 30 + 30;
-        stroke(160, 160, 160, pulseAlpha);
-        strokeWeight(2);
-        noFill();
-        rect(messageX, messageY, boxWidth + 4, boxHeight + 4, 5);
-        
-        // Reset rect mode
-        rectMode(CORNER);
+        fill(200, 200, 200, 180);
+        textAlign(RIGHT, CENTER);
+        textSize(10);
+        textFont('Courier New');
+        text('SCROLL UP ►', windowWidth - 20, windowHeight/2);
     }
 }
 
@@ -314,9 +415,9 @@ function drawInitialInstruction() {
  * Draw statistics panel with controls
  */
 function drawStats() {
-    const panelWidth = 300; // Match help panel width
+    const panelWidth = PANEL_WIDTH;
     
-    // Calculate dynamic height based on content
+    // Calculate dynamic height based on content and available screen space
     const sortedTeams = teams.filter(team => team.members.length > 0)
                             .sort((a, b) => {
                                 const aStrength = a.members.reduce((sum, blob) => sum + blob.strength, 0);
@@ -324,13 +425,18 @@ function drawStats() {
                                 return bStrength - aStrength;
                             });
     const itemHeight = 50;
-    const headerHeight = 90;
-    const maxContentHeight = Math.min(200, windowHeight - headerHeight - 80);
+    const headerHeight = 70; // Reduced from 90
+    const bottomMargin = 100; // Space for buttons and margins
+    const maxAvailableHeight = windowHeight - 40 - bottomMargin; // 40 is top margin
+    const maxContentHeight = Math.max(120, Math.min(300, maxAvailableHeight - headerHeight)); // Smaller max height
     const actualContentHeight = Math.min(sortedTeams.length * itemHeight, maxContentHeight);
-    const panelHeight = headerHeight + actualContentHeight; // No extra space
+    const panelHeight = Math.min(headerHeight + actualContentHeight, maxAvailableHeight);
     
-    // Position terminal on the right side
-    const panelX = windowWidth - panelWidth;
+    // Find position of stats panel in array and calculate its x position
+    const panelIndex = panelArray.findIndex(panel => panel.type === 'stats');
+    if (panelIndex === -1) return; // Panel not in array, shouldn't draw
+    
+    const panelX = calculatePanelPosition(panelIndex);
     
     // Terminal-style black panel
     push();
@@ -415,9 +521,6 @@ function drawStats() {
         strokeWeight(3);
         line(panelX + panelWidth - 6, scrollBarY, panelX + panelWidth - 6, scrollBarY + scrollBarHeight);
     }
-    
-    // Draw interactive buttons
-    drawButtons(panelX, panelWidth, panelHeight);
     
     pop();
 }
@@ -516,11 +619,19 @@ function drawTerminalBar(label, value, maxValue, x, y, width) {
  * Draw instructions panel
  */
 function drawInstructions() {
-    const panelWidth = 300;
-    const panelHeight = 250;
-    const terminalWidth = 300; // Match terminal width
-    const x = windowWidth - terminalWidth - panelWidth - 10; // Position to the left of terminal
-    const y = 20; // Same offset as terminal panel
+    const panelWidth = PANEL_WIDTH;
+    const y = 20; // Same vertical offset as terminal panel
+    
+    // Calculate responsive height - smaller than before
+    const bottomMargin = 100; // Space for buttons and margins
+    const maxAvailableHeight = windowHeight - y - bottomMargin;
+    const panelHeight = Math.min(300, Math.max(200, maxAvailableHeight)); // Between 200-300px, smaller max
+    
+    // Find position of help panel in array and calculate its x position
+    const panelIndex = panelArray.findIndex(panel => panel.type === 'help');
+    if (panelIndex === -1) return; // Panel not in array, shouldn't draw
+    
+    const x = calculatePanelPosition(panelIndex);
     
     // Terminal-style instructions background
     fill(0, 0, 0, 220);
@@ -574,89 +685,6 @@ function drawInstructions() {
 /**
  * Draw interactive buttons in stats panel
  */
-function drawButtons(panelX, panelWidth, panelHeight) {
-    const buttonSpacing = 4;
-    const buttonWidth = (panelWidth - 10 - (buttonSpacing * 3)) / 4; // Divide width equally among 4 buttons
-    const buttonHeight = 30; // Slightly bigger
-    const startX = panelX + 5;
-    const startY = 20 + panelHeight + 2; // Position directly under the terminal panel with minimal gap
-    
-    const buttons = [
-        { label: 'RESET', action: 'reset', key: 'R' },
-        { label: 'ARROWS', action: 'arrows', key: 'V', active: showDirections },
-        { label: 'CIRCLES', action: 'circles', key: 'C', active: showTeamCircles },
-        { label: 'HELP', action: 'help', key: 'H', active: showInstructions }
-    ];
-    
-    buttons.forEach((button, index) => {
-        const x = startX + (buttonWidth + buttonSpacing) * index;
-        const y = startY;
-        
-        // Button background
-        if (button.active) {
-            fill(80, 80, 80);
-        } else {
-            fill(40, 40, 40);
-        }
-        stroke(120, 120, 120);
-        strokeWeight(1);
-        rect(x, y, buttonWidth, buttonHeight);
-        
-        // Button text
-        fill(button.active ? 200 : 160, button.active ? 200 : 160, button.active ? 200 : 160);
-        textAlign(CENTER, CENTER);
-        textSize(10);
-        textFont('Courier New');
-        textStyle(NORMAL);
-        text(button.label, x + buttonWidth/2, y + buttonHeight/2 - 2);
-        
-        // Key indicator
-        textSize(7);
-        fill(120, 120, 120);
-        text(`[${button.key}]`, x + buttonWidth/2, y + buttonHeight - 6);
-        
-        // Store button bounds for click detection
-        button.x = x;
-        button.y = y;
-        button.width = buttonWidth;
-        button.height = buttonHeight;
-    });
-    
-    // Store buttons globally for click detection
-    window.uiButtons = buttons;
-}
-
-/**
- * Handle mouse clicks on buttons
- */
-function mousePressed() {
-    if (window.uiButtons) {
-        window.uiButtons.forEach(button => {
-            if (mouseX >= button.x && mouseX <= button.x + button.width &&
-                mouseY >= button.y && mouseY <= button.y + button.height) {
-                
-                // Execute button action
-                switch(button.action) {
-                    case 'reset':
-                        resetSimulation();
-                        break;
-                    case 'arrows':
-                        showDirections = !showDirections;
-                        blobs.forEach(blob => blob.showDirections = showDirections);
-                        break;
-                    case 'circles':
-                        showTeamCircles = !showTeamCircles;
-                        blobs.forEach(blob => blob.showTeamCircles = showTeamCircles);
-                        break;
-                    case 'help':
-                        showInstructions = !showInstructions;
-                        break;
-                }
-            }
-        });
-    }
-}
-
 /**
  * Handle key presses
  */
@@ -664,6 +692,13 @@ function keyPressed() {
     switch (key) {
         case ' ':
             showStats = !showStats;
+            if (showStats) {
+                addPanelToArray('stats');
+                statsActivatedTime = millis();
+            } else {
+                removePanelFromArray('stats');
+                statsActivatedTime = 0;
+            }
             break;
         case 'd':
         case 'D':
@@ -693,6 +728,14 @@ function keyPressed() {
         case 'h':
         case 'H':
             showInstructions = !showInstructions;
+            
+            if (showInstructions) {
+                addPanelToArray('help');
+                helpActivatedTime = millis();
+            } else {
+                removePanelFromArray('help');
+                helpActivatedTime = 0;
+            }
             break;
         case 'm':
         case 'M':
@@ -834,6 +877,8 @@ function addBlobAtMouse(x, y) {
     
     const newBlob = new Blob(x, y, null); // Creates its own individual team
     newBlob.showDebug = showDebug;
+    newBlob.showDirections = showDirections;
+    newBlob.showTeamCircles = showTeamCircles;
     blobs.push(newBlob);
     
     // Add the blob's team to global teams array
@@ -939,13 +984,95 @@ function logBlobInfo() {
 
 // Mouse wheel scrolling for stats panel
 function mouseWheel(event) {
-    const panelWidth = 300;
-    const panelX = windowWidth - panelWidth;
-    
-    if (showStats && mouseX > panelX && mouseX < windowWidth) {
-        // Scroll in stats panel
-        scrollOffset += event.delta * 3;
-        scrollOffset = Math.max(0, Math.min(scrollOffset, maxScroll));
-        return false; // Prevent page scrolling
+    // Check if mouse is over any panel area for horizontal scrolling
+    if (panelArray.length > 0) {
+        const leftmostPanelX = calculatePanelPosition(0);
+        const rightmostPanelX = calculatePanelPosition(panelArray.length - 1) + PANEL_WIDTH;
+        
+        // If mouse is in the panel area (with some tolerance) and panels extend beyond screen
+        if (mouseY >= 20 && mouseY <= windowHeight - 120 && // In panel vertical range
+            (leftmostPanelX < 0 || rightmostPanelX > windowWidth)) { // Panels overflow
+            
+            // Horizontal scroll for panels 
+            // Scroll down = increase offset = move panels right = reveal left content
+            // Scroll up = decrease offset = move panels left = reveal right content
+            horizontalScrollOffset += event.delta * 30; 
+            clampHorizontalScroll();
+            return false; // Prevent page scrolling
+        }
     }
+    
+    // Vertical scroll for stats panel content (existing functionality)
+    const statsPanel = panelArray.find(panel => panel.type === 'stats');
+    if (statsPanel && showStats) {
+        const statsPanelIndex = panelArray.findIndex(panel => panel.type === 'stats');
+        const statsPanelX = calculatePanelPosition(statsPanelIndex);
+        
+        if (mouseX > statsPanelX && mouseX < statsPanelX + PANEL_WIDTH &&
+            mouseY >= 20 && mouseY <= windowHeight - 120) {
+            // Scroll in stats panel content
+            scrollOffset += event.delta * 3;
+            scrollOffset = Math.max(0, Math.min(scrollOffset, maxScroll));
+            return false; // Prevent page scrolling
+        }
+    }
+}
+
+/**
+ * Panel Array Management System
+ */
+function addPanelToArray(panelType) {
+    // Remove panel if it already exists
+    removePanelFromArray(panelType);
+    
+    // Add new panel to the beginning of array (leftmost position)
+    panelArray.unshift({
+        type: panelType,
+        addedTime: millis()
+    });
+    
+    // Adjust scroll if needed to keep panels visible
+    clampHorizontalScroll();
+    
+    console.log(`Added ${panelType} panel. Array:`, panelArray.map(p => p.type));
+}
+
+function removePanelFromArray(panelType) {
+    const index = panelArray.findIndex(panel => panel.type === panelType);
+    if (index !== -1) {
+        panelArray.splice(index, 1);
+        
+        // Adjust scroll when panels are removed
+        clampHorizontalScroll();
+        
+        console.log(`Removed ${panelType} panel. Array:`, panelArray.map(p => p.type));
+    }
+}
+
+function calculatePanelPosition(panelIndex) {
+    // Calculate position from right side with proper margin and horizontal scroll
+    const rightMargin = 20; // Same margin as used for top positioning
+    const panelsFromRight = panelArray.length - 1 - panelIndex;
+    const baseX = windowWidth - rightMargin - PANEL_WIDTH - (panelsFromRight * (PANEL_WIDTH + PANEL_SPACING));
+    
+    // Apply horizontal scroll offset (positive scroll moves panels right to reveal left-side content)
+    const x = baseX + horizontalScrollOffset;
+    return x;
+}
+
+function getTotalPanelsWidth() {
+    if (panelArray.length === 0) return 0;
+    return (PANEL_WIDTH * panelArray.length) + (PANEL_SPACING * (panelArray.length - 1));
+}
+
+function getMaxHorizontalScroll() {
+    const totalWidth = getTotalPanelsWidth();
+    const availableWidth = windowWidth - 40; // 20px margin on each side
+    return Math.max(0, totalWidth - availableWidth);
+}
+
+function clampHorizontalScroll() {
+    const maxScroll = getMaxHorizontalScroll();
+    // Horizontal scroll should be between 0 (no scroll) and +maxScroll (scroll right to show left panels)
+    horizontalScrollOffset = Math.max(0, Math.min(maxScroll, horizontalScrollOffset));
 }

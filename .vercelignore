@@ -5,3 +5,9 @@ node_modules
 .env*
 dist/
 package-lock.json
+# Raspberry Pi specific files
+*.service
+*.sh
+install-pi.sh
+start-simulation.sh
+blob-simulation.service

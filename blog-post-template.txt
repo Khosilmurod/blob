@@ -1,0 +1,162 @@
+# Blog Post: Blob Simulation - Generative Art Installation
+
+## Project Overview
+**Title:** Blob Life Simulation, a Generative Art Installation for Any Canvas
+**Date:** September 18, 2025
+**Collaboration:** Team project with Michael (initial design), individual implementation
+
+## Inspiration
+In high school, I loved to watch "Simulating Natural Selection" series by Primer! Here is the youtube link https://www.youtube.com/watch?v=0ZGbIKd0XrM&t=308s. Me and Michael thought of creating a simulation of agents that could have properties and represent artistic computing.
+
+### Initial Concept
+Initially, we wanted to create a blob natural selection or team effort simulation in OpenGL or P5.js.
+
+### Team Collaboration with Michael
+We worked as a team during the initial design phase. Michael and I had offline meeting where we discussed the underlying mechanisms of our "blob" game concept. During these collaborative sessions, we explored:
+
+- The OOP design
+- Blob Movement Mechanicisms
+- Team Collision Logic
+
+### Design Philosophy
+Inspired by Snake's wraparound mechanics, I created a toroidal canvas where blobs travel through screen edges. This design eliminates boundary constraints, enables continuous team interactions, and uses simple modulo math to create infinite space within finite bounds.
+
+
+### From Concept to Implementation
+Although the final implementation specifications changed significantly from our initial mechanics, the core logic and philosophy largely drew from those early collaborative discussions.
+
+**Initial Mechanics We Designed:**
+- [Describe the original game mechanics you and Michael designed]
+- [What were the core interaction rules?]
+- [How were teams supposed to work?]
+
+## Technical Implementation
+
+### Object-Oriented Architecture
+
+#### Team Object
+I first created the Team class with the following fields:
+- [List and explain Team class properties]
+- [How do teams manage their members?]
+- [What team-level behaviors did you implement?]
+
+#### Blob Object  
+The Blob class contained:
+- [List and explain Blob class properties]
+- [Describe movement and behavior systems]
+- [How do blobs interact with each other?]
+
+### Evolution of Game Mechanics
+
+#### Original Complex System
+Initially, I implemented a more complex system with multiple behavioral fields:
+- **Cooperation**: [Explain what this was meant to do]
+- **Aggression**: [Describe the aggression system]
+- **Morality**: [What role did morality play?]
+
+#### Simplified Current Version
+I eventually changed to the current streamlined version because:
+- [Why did you simplify?]
+- [What are the current mechanics?]
+- [How does the simplified system work better?]
+
+### Code Refactoring and Optimization
+
+#### Initial Collision Logic Problem
+One of the major problems I encountered was simplifying the logic and avoiding repeating code. I first implemented blob-to-blob and team-to-team collision logic as separate systems, but then realized I could give each blob a team reference and only write the team-level logic.
+
+**Before:**
+- Separate collision detection for blobs
+- Separate collision detection for teams
+- Redundant code and complex interactions
+
+**After:**
+- Unified system where each blob has a team
+- Single collision logic that handles team relationships
+- Cleaner, more maintainable code
+
+## Specialization for "Any Canvas"
+
+### Responsive Design Implementation
+
+#### Conditional 1: Screen Size Adaptation
+[Describe your first conditional - how does the art adapt to different screen sizes?]
+
+#### Conditional 2: Display Parameters
+[Describe your second conditional - what other display characteristics affect the artwork?]
+
+### Technical Constraints Solutions
+
+#### No Input Requirement
+[How did you ensure the art works without user input?]
+
+#### Aspect Ratio Handling
+[How does your art adapt to different aspect ratios?]
+
+## Technical Challenges and Solutions
+
+### Challenge 1: [Describe a major technical problem]
+**Problem:** [What went wrong?]
+**Solution:** [How did you solve it?]
+**Lesson:** [What would you tell other artists facing this issue?]
+
+### Challenge 2: [Another technical challenge]
+**Problem:** [What was the issue?]
+**Solution:** [Your approach to fixing it?]
+**Impact:** [How did this affect the final piece?]
+
+### Challenge 3: Performance and Scalability
+**Problem:** [Performance issues you encountered]
+**Solution:** [Optimization strategies you used]
+**Result:** [How well does it scale across different devices?]
+
+## Raspberry Pi Deployment
+The project includes automated setup scripts that configure the Raspberry Pi to boot directly into fullscreen mode, displaying the simulation without any browser UI. A systemd service ensures the application starts automatically on boot and restarts if it crashes.
+
+## Artistic Outcomes
+
+### Emergent Behaviors
+[What unexpected behaviors emerged from your system?]
+
+### Visual Aesthetics
+[How do the visuals serve your artistic vision?]
+
+### Generative Qualities
+[What makes this truly generative art?]
+
+## Reflections and Future Directions
+
+### Lessons Learned
+[Key takeaways from the project - technical and artistic]
+
+### Future Enhancements
+[Most important features or improvements for future versions]
+
+### Advice for Artists
+[Tips for others creating similar generative installations]
+
+## Project Details
+
+### Structure & Components
+```
+├── index.html          # Entry point with p5.js canvas setup
+├── sketch.js           # Main simulation logic
+├── src/                # Core classes 
+   ├── Team.js          # Team behavior management
+   └── Blob.js          # Individual blob entities
+```
+
+### Technical Requirements
+- Modern web browser with JavaScript support
+- Raspberry Pi for installation (fullscreen kiosk mode)
+
+## Conclusion
+
+[Summarize your experience, what you learned, and how this project contributes to your understanding of generative art]
+
+---
+
+**Links:**
+- GitHub Repository: [Add your repo link]
+- Live Demo: [Add Vercel deployment link]
+- Video Documentation: [Add video link when ready]
