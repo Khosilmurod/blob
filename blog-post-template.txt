@@ -1,162 +1,73 @@
-# Blog Post: Blob Simulation - Generative Art Installation
-
 ## Project Overview
-**Title:** Blob Life Simulation, a Generative Art Installation for Any Canvas
+
+### **`Live Demo: https://blob-phi-olive.vercel.app/`**
+
+**Title:** Blob Life Simulation
 **Date:** September 18, 2025
-**Collaboration:** Team project with Michael (initial design), individual implementation
+**Collaboration:** Collaborated with [Michael](https://www.linkedin.com/in/michaelcanudas/) on initial simulation mechanics. Implemented individually.
+
+**Links:**
+
+- **GitHub:** https://github.com/Khosilmurod/blob
+- **Live Demo: https://blob-phi-olive.vercel.app/**
+- **Video:**
+
+## Project Description
+
+This is a computer simulation where colorful circles called "blobs" move around the screen and automatically form teams with each other. The blobs can cooperate to make bigger teams or fight against other teams, with team leaders getting special golden crowns. It's like watching a digital ecosystem where the blobs create their own societies and battles without any human control.
 
 ## Inspiration
-In high school, I loved to watch "Simulating Natural Selection" series by Primer! Here is the youtube link https://www.youtube.com/watch?v=0ZGbIKd0XrM&t=308s. Me and Michael thought of creating a simulation of agents that could have properties and represent artistic computing.
 
-### Initial Concept
-Initially, we wanted to create a blob natural selection or team effort simulation in OpenGL or P5.js.
-
-### Team Collaboration with Michael
-We worked as a team during the initial design phase. Michael and I had offline meeting where we discussed the underlying mechanisms of our "blob" game concept. During these collaborative sessions, we explored:
-
-- The OOP design
-- Blob Movement Mechanicisms
-- Team Collision Logic
-
-### Design Philosophy
-Inspired by Snake's wraparound mechanics, I created a toroidal canvas where blobs travel through screen edges. This design eliminates boundary constraints, enables continuous team interactions, and uses simple modulo math to create infinite space within finite bounds.
-
-
-### From Concept to Implementation
-Although the final implementation specifications changed significantly from our initial mechanics, the core logic and philosophy largely drew from those early collaborative discussions.
-
-**Initial Mechanics We Designed:**
-- [Describe the original game mechanics you and Michael designed]
-- [What were the core interaction rules?]
-- [How were teams supposed to work?]
+This is a computer simulation where colorful circles called "blobs" move around the screen and automatically form teams with each other. The blobs can cooperate to make bigger teams or fight against other teams, with team leaders getting special golden crowns. It's like watching a digital ecosystem where the blobs create their own societies and battles without any human control.
 
 ## Technical Implementation
 
+### Project Structure
+
+```
+├── index.html          # p5.js canvas setup and entry point
+├── sketch.js           # main simulation loop and ui management
+├── config.json         # configurable parameters for simulation
+└── src/                # core object-oriented classes
+   ├── Team.js          # team behavior and management
+   └── Blob.js          # individual blob entities and interactions
+```
+
 ### Object-Oriented Architecture
 
-#### Team Object
-I first created the Team class with the following fields:
-- [List and explain Team class properties]
-- [How do teams manage their members?]
-- [What team-level behaviors did you implement?]
+The simulation is built around two core classes that handle all the complex behaviors:
 
-#### Blob Object  
-The Blob class contained:
-- [List and explain Blob class properties]
-- [Describe movement and behavior systems]
-- [How do blobs interact with each other?]
+**Blob Class:** Each individual circle is a Blob object with properties like `leadership` (1-100), `strength` (1-100), and `personalColor`. Blobs use steering forces for movement, check for nearby interactions within their radius, and can join teams or engage in combat. The class handles both individual wandering behavior and team-following dynamics.
 
-### Evolution of Game Mechanics
+**Team Class:** Teams manage collections of blobs with shared properties like `aggression` (0-100), `life/health` (0-100), and automatic leader selection. When blobs join teams, the Team class harmonizes their colors and coordinates group behaviors like combat formation and rebellion splitting.
 
-#### Original Complex System
-Initially, I implemented a more complex system with multiple behavioral fields:
-- **Cooperation**: [Explain what this was meant to do]
-- **Aggression**: [Describe the aggression system]
-- **Morality**: [What role did morality play?]
+### Core Mechanics Implementation
 
-#### Simplified Current Version
-I eventually changed to the current streamlined version because:
-- [Why did you simplify?]
-- [What are the current mechanics?]
-- [How does the simplified system work better?]
+**Interaction System:** Every frame, each blob checks for other blobs within its interaction radius. When two blobs meet, they calculate cooperation probability using `(100 - team.aggression) / 100`. Large teams (3+ members) are more likely to fight, while smaller teams tend to cooperate and merge.
 
-### Code Refactoring and Optimization
+**Combat Resolution:** When teams fight, they compare total strength values and the winner gains life while the loser loses life. Dead teams are automatically replaced with new individual blobs to maintain population balance.
 
-#### Initial Collision Logic Problem
-One of the major problems I encountered was simplifying the logic and avoiding repeating code. I first implemented blob-to-blob and team-to-team collision logic as separate systems, but then realized I could give each blob a team reference and only write the team-level logic.
+**Leadership & Visual Indicators:** Teams automatically select leaders based on highest leadership values. Leaders get golden crown indicators with pulsing animations, and all team members follow the leader's movement patterns using formation offsets.
 
-**Before:**
-- Separate collision detection for blobs
-- Separate collision detection for teams
-- Redundant code and complex interactions
+## Implementation Timeline
 
-**After:**
-- Unified system where each blob has a team
-- Single collision logic that handles team relationships
-- Cleaner, more maintainable code
+I first worked with Michael to define the object-oriented design and core mechanics, starting with leadership and strength attributes. I then developed the simulation independently over 5–8 hours, creating the Blob and Team classes and the interaction loop. In the following 2–3 hours, I added an interactive terminal and help windows, refined the canvas integration, and deployed the project on Vercel for public access.
 
-## Specialization for "Any Canvas"
-
-### Responsive Design Implementation
-
-#### Conditional 1: Screen Size Adaptation
-[Describe your first conditional - how does the art adapt to different screen sizes?]
-
-#### Conditional 2: Display Parameters
-[Describe your second conditional - what other display characteristics affect the artwork?]
-
-### Technical Constraints Solutions
-
-#### No Input Requirement
-[How did you ensure the art works without user input?]
-
-#### Aspect Ratio Handling
-[How does your art adapt to different aspect ratios?]
-
-## Technical Challenges and Solutions
-
-### Challenge 1: [Describe a major technical problem]
-**Problem:** [What went wrong?]
-**Solution:** [How did you solve it?]
-**Lesson:** [What would you tell other artists facing this issue?]
-
-### Challenge 2: [Another technical challenge]
-**Problem:** [What was the issue?]
-**Solution:** [Your approach to fixing it?]
-**Impact:** [How did this affect the final piece?]
-
-### Challenge 3: Performance and Scalability
-**Problem:** [Performance issues you encountered]
-**Solution:** [Optimization strategies you used]
-**Result:** [How well does it scale across different devices?]
-
-## Raspberry Pi Deployment
-The project includes automated setup scripts that configure the Raspberry Pi to boot directly into fullscreen mode, displaying the simulation without any browser UI. A systemd service ensures the application starts automatically on boot and restarts if it crashes.
+![telegram-cloud-photo-size-2-5361840492792382845-y.jpg](attachment:c8aa1275-b8d6-4176-aded-95212a29be1c:telegram-cloud-photo-size-2-5361840492792382845-y.jpg)
 
 ## Artistic Outcomes
 
-### Emergent Behaviors
-[What unexpected behaviors emerged from your system?]
+The simulation creates changing abstract patterns through blob behavior:
 
-### Visual Aesthetics
-[How do the visuals serve your artistic vision?]
+- **Teams forming** with smooth color blends
+- **Leaders changing** to create shifting focal points
+- **Fights and battles** that make short-lived shapes
+- **Self-organization** that leads to patterns that never repeat
 
-### Generative Qualities
-[What makes this truly generative art?]
+## Deployment
 
-## Reflections and Future Directions
+Includes Raspberry Pi setup scripts for gallery installations with automatic fullscreen mode and systemd service management.
 
-### Lessons Learned
-[Key takeaways from the project - technical and artistic]
+## LLM Use
 
-### Future Enhancements
-[Most important features or improvements for future versions]
-
-### Advice for Artists
-[Tips for others creating similar generative installations]
-
-## Project Details
-
-### Structure & Components
-```
-├── index.html          # Entry point with p5.js canvas setup
-├── sketch.js           # Main simulation logic
-├── src/                # Core classes 
-   ├── Team.js          # Team behavior management
-   └── Blob.js          # Individual blob entities
-```
-
-### Technical Requirements
-- Modern web browser with JavaScript support
-- Raspberry Pi for installation (fullscreen kiosk mode)
-
-## Conclusion
-
-[Summarize your experience, what you learned, and how this project contributes to your understanding of generative art]
-
----
-
-**Links:**
-- GitHub Repository: [Add your repo link]
-- Live Demo: [Add Vercel deployment link]
-- Video Documentation: [Add video link when ready]
+I collaborated with Michael on design and conceptualization, and used GitHub Copilot to support in the implementation.
