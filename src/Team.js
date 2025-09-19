@@ -59,6 +59,9 @@ class Team {
                 
                 // Reconsider leadership when new member joins
                 this.selectLeader();
+            } else if (this.isIndividual && this.members.length === 1) {
+                // For individual teams, immediately assign leadership
+                this.selectLeader();
             }
             
             // Adjust team morale based on new member

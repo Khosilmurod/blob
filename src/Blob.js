@@ -32,9 +32,15 @@ class Blob {
         this.team = team;
         team.addMember(this);
         
+        // Ensure individual blobs immediately get leadership (fix crown delay)
+        if (team.isIndividual && team.members.length === 1) {
+            this.isTeamLeader = true;
+            team.leader = this;
+        }
+        
         // Interaction properties
         this.interactionRadius = this.size + 15; // How close to be for interactions
-        this.lastInteraction = 0;
+        this.lastInteraction = millis() - 3000; // Set to past time to avoid initial cooldown
         this.interactionCooldown = 2000; // 2 seconds between interactions
         this.isInCombat = false;
         this.combatTarget = null;
