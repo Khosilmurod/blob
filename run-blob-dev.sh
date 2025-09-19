@@ -78,26 +78,28 @@ if ! curl -s http://localhost:8080 > /dev/null; then
     sleep 5
 fi
 
-# Try to open browser in kiosk mode (only if DISPLAY is available)
-if [ -n "$DISPLAY" ]; then
-    log_message "Opening browser in full-screen kiosk mode..."
-    
-    # Try different browsers in order of preference
-    if command -v chromium-browser &> /dev/null; then
-        log_message "Using Chromium browser..."
-        chromium-browser --kiosk --disable-infobars --disable-session-crashed-bubble --disable-restore-session-state --autoplay-policy=no-user-gesture-required http://localhost:8080 &
-    elif command -v google-chrome &> /dev/null; then
-        log_message "Using Google Chrome..."
-        google-chrome --kiosk --disable-infobars --disable-session-crashed-bubble --disable-restore-session-state --autoplay-policy=no-user-gesture-required http://localhost:8080 &
-    elif command -v firefox &> /dev/null; then
-        log_message "Using Firefox in fullscreen..."
-        firefox --kiosk http://localhost:8080 &
-    else
-        log_message "No suitable browser found. Please open http://localhost:8080 manually."
-    fi
+# Try to open browser in kiosk mode
+log_message "Attempting to open browser in full-screen kiosk mode..."
+
+# Set DISPLAY if not set (common for desktop environments)
+if [ -z "$DISPLAY" ]; then
+    export DISPLAY=:0
+    log_message "DISPLAY not set, using :0"
+fi
+
+# Try different browsers in order of preference
+if [ -x "/usr/bin/chromium-browser" ]; then
+    log_message "Using Chromium browser..."
+    /usr/bin/chromium-browser --kiosk --disable-infobars --disable-session-crashed-bubble --disable-restore-session-state --autoplay-policy=no-user-gesture-required http://localhost:8080 > /dev/null 2>&1 &
+elif [ -x "/usr/bin/google-chrome" ]; then
+    log_message "Using Google Chrome..."
+    /usr/bin/google-chrome --kiosk --disable-infobars --disable-session-crashed-bubble --disable-restore-session-state --autoplay-policy=no-user-gesture-required http://localhost:8080 > /dev/null 2>&1 &
+elif [ -x "/usr/bin/firefox" ]; then
+    log_message "Using Firefox in fullscreen..."
+    /usr/bin/firefox --kiosk http://localhost:8080 > /dev/null 2>&1 &
 else
-    log_message "No display available. Server is running at http://localhost:8080"
-    log_message "Browser will auto-open when you log in to the desktop."
+    log_message "No suitable browser found. Please open http://localhost:8080 manually."
+    log_message "Available browsers: $(ls /usr/bin/*browser* /usr/bin/*chrome* /usr/bin/*firefox* 2>/dev/null | tr '\n' ' ')"
 fi
 
 # Wait for the server process to finish

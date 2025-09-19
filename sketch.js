@@ -4,7 +4,7 @@ let teams = [];
 let canvas;
 let showStats = false; // Terminal disabled by default - press space to show
 let showDebug = false;
-let showDirections = true; // Toggle for direction arrows - enabled by default
+let showDirections = false; // Toggle for individual direction arrows - disabled by default
 let showTeamCircles = true; // Toggle for team formation circles - enabled by default
 let showInstructions = false; // Toggle for instructions panel
 

@@ -809,18 +809,12 @@ class Blob {
     render() {
         push();
         
-        // Draw team connections first (behind blobs) - separate toggle
+        // Draw team connections and combat arrows (c key toggle)
         if (this.showTeamCircles && this.team && this.team.members.length > 1) {
             this.drawTeamConnections();
-        }
-
-        // Draw target line and directions behind the blob (separate toggle)
-        if (this.showDirections) {
-            stroke(255, 100, 100, 100);
-            strokeWeight(1);
             
+            // Draw combat rally point arrows (part of team system)
             if (this.isInCombat && this.combatTarget) {
-                // Show combat target
                 const rallyPoint = this.team.getCombatRallyPoint();
                 if (rallyPoint) {
                     // Use team's harmonious color for rally point
@@ -838,13 +832,18 @@ class Blob {
                     fill(255, 255, 255, 80);
                     ellipse(rallyPoint.x - 2, rallyPoint.y - 2, 6);
                 }
-            } else {
-                line(this.position.x, this.position.y, this.target.x, this.target.y);
-                // Draw target
-                fill(255, 100, 100, 100);
-                noStroke();
-                ellipse(this.target.x, this.target.y, 8);
             }
+        }
+
+        // Draw individual movement arrows (v key toggle)
+        if (this.showDirections) {
+            stroke(255, 100, 100, 100);
+            strokeWeight(1);
+            line(this.position.x, this.position.y, this.target.x, this.target.y);
+            // Draw target
+            fill(255, 100, 100, 100);
+            noStroke();
+            ellipse(this.target.x, this.target.y, 8);
         }
         
         // Get the blob's unique personal color
