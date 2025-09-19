@@ -807,6 +807,39 @@ class Blob {
         if (this.showTeamCircles && this.team && this.team.members.length > 1) {
             this.drawTeamConnections();
         }
+
+        // Draw target line and directions behind the blob (separate toggle)
+        if (this.showDirections) {
+            stroke(255, 100, 100, 100);
+            strokeWeight(1);
+            
+            if (this.isInCombat && this.combatTarget) {
+                // Show combat target
+                const rallyPoint = this.team.getCombatRallyPoint();
+                if (rallyPoint) {
+                    // Use team's harmonious color for rally point
+                    const rallyColor = this.team.color || color(255, 200, 100);
+                    stroke(red(rallyColor), green(rallyColor), blue(rallyColor), 180);
+                    strokeWeight(2);
+                    line(this.position.x, this.position.y, rallyPoint.x, rallyPoint.y);
+                    
+                    // Artistic rally point indicator
+                    fill(red(rallyColor), green(rallyColor), blue(rallyColor), 120);
+                    noStroke();
+                    ellipse(rallyPoint.x, rallyPoint.y, 14);
+                    
+                    // Inner highlight
+                    fill(255, 255, 255, 80);
+                    ellipse(rallyPoint.x - 2, rallyPoint.y - 2, 6);
+                }
+            } else {
+                line(this.position.x, this.position.y, this.target.x, this.target.y);
+                // Draw target
+                fill(255, 100, 100, 100);
+                noStroke();
+                ellipse(this.target.x, this.target.y, 8);
+            }
+        }
         
         // Get the blob's unique personal color
         const blobColor = this.personalColor || color(200, 200, 200);
@@ -882,39 +915,6 @@ class Blob {
                 const x2 = this.position.x + cos(angle) * (this.size/2 + 12);
                 const y2 = this.position.y + sin(angle) * (this.size/2 + 12);
                 line(x1, y1, x2, y2);
-            }
-        }
-        
-        // Draw target line and directions (separate toggle)
-        if (this.showDirections) {
-            stroke(255, 100, 100, 100);
-            strokeWeight(1);
-            
-            if (this.isInCombat && this.combatTarget) {
-                // Show combat target
-                const rallyPoint = this.team.getCombatRallyPoint();
-                if (rallyPoint) {
-                    // Use team's harmonious color for rally point
-                    const rallyColor = this.team.color || color(255, 200, 100);
-                    stroke(red(rallyColor), green(rallyColor), blue(rallyColor), 180);
-                    strokeWeight(2);
-                    line(this.position.x, this.position.y, rallyPoint.x, rallyPoint.y);
-                    
-                    // Artistic rally point indicator
-                    fill(red(rallyColor), green(rallyColor), blue(rallyColor), 120);
-                    noStroke();
-                    ellipse(rallyPoint.x, rallyPoint.y, 14);
-                    
-                    // Inner highlight
-                    fill(255, 255, 255, 80);
-                    ellipse(rallyPoint.x - 2, rallyPoint.y - 2, 6);
-                }
-            } else {
-                line(this.position.x, this.position.y, this.target.x, this.target.y);
-                // Draw target
-                fill(255, 100, 100, 100);
-                noStroke();
-                ellipse(this.target.x, this.target.y, 8);
             }
         }
         

@@ -4,24 +4,13 @@ let teams = [];
 let canvas;
 let showStats = false; // Terminal disabled by default - press space to show
 let showDebug = false;
-let showDirections = true; // Toggle for direction arrows - enabled by default
+let showDirections = false; // Toggle for direction arrows - disabled by default
 let showTeamCircles = true; // Toggle for team formation circles - enabled by default
 let showInstructions = false; // Toggle for instructions panel
-
-// Audio
-let backgroundMusic;
 
 /**
  * Preload assets before setup
  */
-function preload() {
-    // Load background music
-    backgroundMusic = loadSound('assets/Traditional Uzbek Music - Glorious Morning.mp3', 
-        () => console.log('Background music loaded successfully'),
-        () => console.log('Failed to load background music - file may not exist')
-    );
-}
-
 // Configuration object - loaded from config.json
 let config = {};
 
@@ -29,8 +18,6 @@ let config = {};
 let scrollOffset = 0;
 let maxScroll = 0;
 let startTime = 0; // Track when simulation started
-let statsActivatedTime = 0; // When stats panel was activated (0 if not active)
-let helpActivatedTime = 0;  // When help panel was activated (0 if not active)
 
 // Panel Array System - right-justified panels
 let panelArray = []; // Array of active panel objects
@@ -134,12 +121,6 @@ function setup() {
     startTime = millis();
     
     // Setup background music
-    if (backgroundMusic && backgroundMusic.isLoaded()) {
-        backgroundMusic.setVolume(0.3); // Set volume to 30%
-        backgroundMusic.loop(); // Loop continuously
-        console.log('Background music started');
-    }
-    
     // Initialize generative art color palette
     colorPalette = new ColorPalette();
     window.colorPalette = colorPalette; // Make globally accessible
@@ -197,8 +178,6 @@ function draw() {
     if (blobs.length < targetPopulation && frameCount % 60 === 0) { // Check every second
         const missing = Math.min(targetPopulation - blobs.length, maxBlobs - blobs.length);
         if (missing > 0) {
-            console.log(`🔧 Population dropped to ${blobs.length}. Adding ${missing} blobs (max: ${maxBlobs}).`);
-            
             for (let i = 0; i < missing; i++) {
                 const margin = 50;
                 const x = random(margin, windowWidth - margin);
@@ -663,7 +642,6 @@ function drawInstructions() {
         '[C] - Toggle team circles',
         '[R] - Reset simulation',
         '[F] - Toggle fullscreen',
-        '[M] - Toggle background music',
         '',
         'MOUSE:',
         'Scroll - Navigate team list',
@@ -694,10 +672,8 @@ function keyPressed() {
             showStats = !showStats;
             if (showStats) {
                 addPanelToArray('stats');
-                statsActivatedTime = millis();
             } else {
                 removePanelFromArray('stats');
-                statsActivatedTime = 0;
             }
             break;
         case 'd':
@@ -709,13 +685,11 @@ function keyPressed() {
         case 'V':
             showDirections = !showDirections;
             blobs.forEach(blob => blob.showDirections = showDirections);
-            console.log(`Direction arrows: ${showDirections ? 'ON' : 'OFF'}`);
             break;
         case 'c':
         case 'C':
             showTeamCircles = !showTeamCircles;
             blobs.forEach(blob => blob.showTeamCircles = showTeamCircles);
-            console.log(`Team circles: ${showTeamCircles ? 'ON' : 'OFF'}`);
             break;
         case 'r':
         case 'R':
@@ -731,23 +705,8 @@ function keyPressed() {
             
             if (showInstructions) {
                 addPanelToArray('help');
-                helpActivatedTime = millis();
             } else {
                 removePanelFromArray('help');
-                helpActivatedTime = 0;
-            }
-            break;
-        case 'm':
-        case 'M':
-            // Toggle background music
-            if (backgroundMusic && backgroundMusic.isLoaded()) {
-                if (backgroundMusic.isPlaying()) {
-                    backgroundMusic.pause();
-                    console.log('Background music paused');
-                } else {
-                    backgroundMusic.play();
-                    console.log('Background music resumed');
-                }
             }
             break;
     }
@@ -849,11 +808,6 @@ function checkTeamDynamics() {
             }
             
             const finalBlobCount = blobs.length;
-            console.log(`📊 Population check: ${initialBlobCount} → ${finalBlobCount} (change: ${finalBlobCount - initialBlobCount})`);
-            
-            if (Math.abs(finalBlobCount - initialBlobCount) > 0) {
-                console.warn(`⚠️ Population changed by ${finalBlobCount - initialBlobCount}! This should be 0.`);
-            }
         }
         
         // Remove dead teams from teams array (only those marked as processed)
@@ -885,8 +839,6 @@ function addBlobAtMouse(x, y) {
     if (!teams.includes(newBlob.team)) {
         teams.push(newBlob.team);
     }
-    
-    console.log(`Added new blob at (${x}, ${y}) - Team: ${newBlob.team.name} (${blobs.length}/${maxBlobs})`);
 }
 
 /**
@@ -916,8 +868,6 @@ function removeNearestBlob(x, y) {
         
         // Remove from blobs array
         blobs.splice(nearestIndex, 1);
-        
-        console.log(`Removed blob ${nearestBlob.id}`);
     }
 }
 
@@ -967,19 +917,6 @@ function windowResized() {
     });
     
     console.log(`Canvas resized to ${windowWidth}x${windowHeight}`);
-}
-
-// Debug function to log blob information
-function logBlobInfo() {
-    console.log('=== BLOB INFORMATION ===');
-    blobs.forEach(blob => {
-        console.log(blob.getInfo());
-    });
-    
-    console.log('=== TEAM INFORMATION ===');
-    teams.forEach(team => {
-        console.log(team.getStats());
-    });
 }
 
 // Mouse wheel scrolling for stats panel
