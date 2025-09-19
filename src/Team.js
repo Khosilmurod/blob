@@ -254,7 +254,7 @@ class Team {
         const mergedTeam = new Team(`Merged-${Team.nextId}`, dominantTeam.color); // Shorter name
         mergedTeam.morale = (this.morale + otherTeam.morale) / 2;
         mergedTeam.aggression = (this.aggression + otherTeam.aggression) / 2;
-        mergedTeam.maxSize = Math.min(12, this.maxSize + Math.floor(otherTeam.maxSize / 2));
+        mergedTeam.maxSize = Math.min(config.maxTeamSize || 12, this.maxSize + Math.floor(otherTeam.maxSize / 2));
         
         // CRITICAL: Just reassign team membership, don't create new blobs
         // Move all members to new team (this only changes team reference, not global blob count)

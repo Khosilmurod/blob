@@ -8,12 +8,15 @@
     "dev": "npx http-server -c-1 -p 8080"
   },
   "dependencies": {
+    "http-server": "^14.1.1",
     "p5": "^1.7.0"
   },
-  "devDependencies": {
-    "http-server": "^14.1.1"
-  },
-  "keywords": ["p5js", "simulation", "blobs", "object-oriented"],
+  "keywords": [
+    "p5js",
+    "simulation",
+    "blobs",
+    "object-oriented"
+  ],
   "author": "",
   "license": "MIT"
 }

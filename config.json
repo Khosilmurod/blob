@@ -1,17 +1,20 @@
 {
-  "initialBlobCount": 80,
-  "maxBlobCount": 500,
-  "teamStartAggressionMin": 10,
-  "teamStartAggressionMax": 50,
-  "teamMaxSizeMin": 6,
-  "teamMaxSizeMax": 14,
-  "baseDamage": 40,
-  "winnerLifeGain": 0.4,
-  "teamSizeProtection": 0.03,
-  "largePenaltyRate": 0.25,
-  "lifeRegenRate": 0.8,
-  "teamGrowthBonus": 5,
-  "aggressionWinnerIncrease": 4,
-  "aggressionLoserIncrease": 4,
-  "aggressionDecayRate": 0.5
+    "initialBlobCount": 200,
+    "maxBlobCount": 500,
+    "maxTeamSize": 24,
+    "teamMaxSizeMin": 6,
+    "teamMaxSizeMax": 14,
+    "teamStartAggression": { 
+        "min": 10, 
+        "max": 50 
+    },
+    "combat": { 
+        "baseDamage": 8, 
+        "strengthDivisor": 8, 
+        "randomDamageRange": 6 
+    },
+    "winnerLifeGain": 0.4,
+    "teamSizeProtection": 0.05,
+    "largePenaltyThreshold": 6,
+    "largePenaltyRate": 0.15
 }
