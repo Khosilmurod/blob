@@ -1,4 +1,4 @@
-# Blob Simulation - Generative Art Installation
+# Blob Simulation
 
 ## Project Overview
 
@@ -158,20 +158,6 @@ Edit `config.json` to customize simulation parameters:
 - **Large Displays**: Increased population with expanded movement boundaries
 - **Performance Monitoring**: Configurable maximum blob limits prevent performance degradation
 
-## Technical Challenges & Solutions
-
-### Challenge: Blob Overlap Prevention
-**Solution**: Implemented dual-layer collision system with both steering-based separation forces and hard collision resolution that physically repositions overlapping entities.
-
-### Challenge: Team Formation Stability
-**Solution**: Created hierarchical force system where leaders navigate independently while followers use seek behavior toward leader positions with formation offsets.
-
-### Challenge: Emergent Behavior Balance
-**Solution**: Tuned interaction probabilities and combat outcomes through extensive parameter testing to achieve stable population dynamics without predictable outcomes.
-
-### Challenge: Visual Clarity at Scale
-**Solution**: Developed high-contrast color palette with team harmonization and selective rendering of UI elements based on screen space availability.
-
 ## Development Notes
 
 ### Technology Stack
@@ -215,11 +201,3 @@ Edit `config.json` to customize simulation parameters:
 **Framework**: p5.js Interactive Graphics  
 **Architecture**: Object-Oriented JavaScript  
 **Development Environment**: Node.js with HTTP Server  
-
-## License
-
-MIT License - Feel free to use, modify, and distribute with attribution.
-
----
-
-*This generative art installation demonstrates emergent complexity arising from simple interaction rules, creating a dynamic visual ecosystem that never repeats the same patterns twice.*
